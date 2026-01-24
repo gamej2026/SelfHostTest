@@ -1,43 +1,44 @@
-name: Build WebGL and Deploy to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, copilot/deploy-github-pages ]
   workflow_dispatch:
 
+# GitHub Pages 배포를 위한 권한 설정
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 동시에 하나의 배포만 허용
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
-  build:
-    runs-on: self-hosted  # 💡 자신의 PC에서 실행
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
       # 1. 저장소 코드 체크아웃
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          lfs: true  # Git LFS 활성화 (큰 파일용)
 
-      # 3. WebGL 빌드 수행
-      - name: Build WebGL
-        run: |
-          & "D:\UnityEditor\2022.3.59f1\Editor\Unity.exe" `
-            -quit `
-            -batchmode `
-            -nographics `
-            -logFile - `
-            -projectPath . `
-            -executeMethod BuildScript.BuildWebGL `
-            -buildPath "build/webgl"
-        
-      # 4. 빌드 산출물 아티팩트로 저장
-      - name: Upload Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: webgl-build
-          path: build/webgl
+      # 2. GitHub Pages 설정
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
 
-      # 5. GitHub Pages에 배포
+      # 3. 빌드 디렉토리를 아티팩트로 업로드
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './build'
+
+      # 4. GitHub Pages에 배포
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build/webgl
+        id: deployment
+        uses: actions/deploy-pages@v4
