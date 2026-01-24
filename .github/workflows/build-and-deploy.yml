@@ -47,11 +47,12 @@ jobs:
         with:
           targetPlatform: WebGL
           unityVersion: 2022.3.59f1
+          buildName: webgl
 
       # 4. Gzip 압축 파일 해제 (GitHub Pages 호환성)
       - name: Decompress build files
         run: |
-          buildDir="build/WebGL/WebGL"
+          buildDir="build/WebGL/webgl"
           if [ -d "$buildDir/Build" ]; then
             cd "$buildDir/Build"
             for file in *.gz; do
@@ -70,20 +71,12 @@ jobs:
             fi
           fi
 
-      # 5. 빌드 결과물 정리
-      - name: Prepare build output
-        run: |
-          mkdir -p build/webgl
-          if [ -d "build/WebGL/WebGL" ]; then
-            cp -r build/WebGL/WebGL/* build/webgl/
-          fi
-
-      # 6. 빌드 결과물을 아티팩트로 업로드
+      # 5. 빌드 결과물을 아티팩트로 업로드
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: unity-webgl-build
-          path: build/webgl
+          path: build/WebGL/webgl
 
   deploy:
     needs: build
