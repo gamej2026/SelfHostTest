@@ -35,7 +35,27 @@ jobs:
             -logFile -
         continue-on-error: false
 
-      # 3. 빌드 결과물을 아티팩트로 업로드
+      # 3. Gzip 압축 파일 해제 (GitHub Pages 호환성)
+      - name: Decompress build files
+        run: |
+          if [ -d "build/webgl/Build" ]; then
+            cd build/webgl/Build
+            for file in *.gz; do
+              if [ -f "$file" ]; then
+                gunzip -k "$file"
+                echo "Decompressed: $file"
+              fi
+            done
+            cd ../../..
+            
+            # index.html에서 .gz 확장자 제거
+            if [ -f "build/webgl/index.html" ]; then
+              sed -i '' 's/\.gz"/"/' build/webgl/index.html
+              echo "Updated index.html to reference decompressed files"
+            fi
+          fi
+
+      # 4. 빌드 결과물을 아티팩트로 업로드
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
