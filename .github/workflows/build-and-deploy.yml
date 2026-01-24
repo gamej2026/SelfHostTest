@@ -19,6 +19,8 @@ concurrency:
 jobs:
   build:
     runs-on: self-hosted
+    env:
+      UNITY_PATH: D:\UnityEditor\6000.3.4f1\Editor\Unity.exe
     steps:
       # 1. 저장소 코드 체크아웃
       - name: Checkout code
@@ -51,10 +53,11 @@ jobs:
           if defined UNITY_LICENSE (
             echo Using license file
             echo %UNITY_LICENSE% > unity.ulf
-            "D:\UnityEditor\6000.3.4f1\Editor\Unity.exe" -batchmode -manualLicenseFile unity.ulf -logFile license-activate.log
+            "%UNITY_PATH%" -batchmode -manualLicenseFile unity.ulf -logFile license-activate.log
+            del unity.ulf 2>nul
           ) else if defined UNITY_EMAIL (
             echo Using credentials
-            "D:\UnityEditor\6000.3.4f1\Editor\Unity.exe" -batchmode -username "%UNITY_EMAIL%" -password "%UNITY_PASSWORD%" -serial "%UNITY_SERIAL%" -quit -logFile license-activate.log
+            "%UNITY_PATH%" -batchmode -username "%UNITY_EMAIL%" -password "%UNITY_PASSWORD%" -serial "%UNITY_SERIAL%" -quit -logFile license-activate.log
           )
           type license-activate.log 2>nul || echo No license log generated
 
@@ -62,7 +65,7 @@ jobs:
       - name: Build Unity WebGL
         shell: cmd
         run: |
-          "D:\UnityEditor\6000.3.4f1\Editor\Unity.exe" -quit -batchmode -nographics -projectPath "%CD%" -executeMethod BuildScript.BuildWebGL -logFile build.log
+          "%UNITY_PATH%" -quit -batchmode -nographics -projectPath "%CD%" -executeMethod BuildScript.BuildWebGL -logFile build.log
           if %ERRORLEVEL% NEQ 0 (
             type build.log
             exit /b %ERRORLEVEL%
@@ -77,7 +80,7 @@ jobs:
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         run: |
           echo Returning Unity license...
-          "D:\UnityEditor\6000.3.4f1\Editor\Unity.exe" -quit -batchmode -returnlicense -logFile license-return.log || echo License return completed
+          "%UNITY_PATH%" -quit -batchmode -returnlicense -logFile license-return.log || echo License return completed
           type license-return.log 2>nul || echo No return log generated
 
       # 6. Gzip 압축 파일 해제 (GitHub Pages 호환성)
