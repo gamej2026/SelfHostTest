@@ -59,6 +59,31 @@ Unity Editor에서 빌드하려면:
 3. File → Build Settings → WebGL 선택
 4. Build 클릭 또는 BuildScript를 사용하여 빌드
 
+## ⚠️ GitHub Pages 배포 시 주의사항
+
+### Gzip 압축 문제 해결
+
+Unity WebGL 빌드가 Gzip 압축을 사용하는 경우, GitHub Pages에서 다음과 같은 에러가 발생할 수 있습니다:
+
+```
+Unable to parse Build/build.framework.js.gz! This can happen if build compression was enabled but web server hosting the content was misconfigured to not serve the file with HTTP Response Header "Content-Encoding: gzip" present.
+```
+
+**원인**: GitHub Pages는 `.gz` 파일을 제공할 때 `Content-Encoding: gzip` 헤더를 자동으로 설정하지 않아, Unity 로더가 압축된 파일을 올바르게 처리하지 못합니다.
+
+**해결 방법**: 이 저장소에서는 빌드 파일을 압축 해제하여 문제를 해결했습니다:
+
+```bash
+cd build/Build
+gunzip -k build.data.gz
+gunzip -k build.framework.js.gz
+gunzip -k build.wasm.gz
+```
+
+그리고 `build/index.html`에서 `.gz` 확장자를 제거하여 압축 해제된 파일을 참조하도록 수정했습니다.
+
+**대안**: Unity Editor에서 빌드할 때 Project Settings → Player → Publishing Settings → Decompression Fallback을 활성화하면 이 문제를 방지할 수 있습니다.
+
 ## 📝 라이센스
 
 이 프로젝트는 테스트 목적으로 만들어졌습니다.
