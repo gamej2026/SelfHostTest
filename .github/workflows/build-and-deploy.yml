@@ -68,7 +68,7 @@ jobs:
       - name: Build Unity WebGL
         shell: powershell
         run: |
-          & $env:UNITY_PATH -quit -batchmode -nographics -projectPath $PWD -executeMethod BuildScript.BuildWebGL -logFile build.log
+          & $env:UNITY_PATH -quit -batchmode -nographics -projectPath (Get-Location).Path -executeMethod BuildScript.BuildWebGL -logFile build.log
           if ($LASTEXITCODE -ne 0) {
             Get-Content build.log
             exit $LASTEXITCODE
