@@ -25,41 +25,28 @@ Unity WebGL 프로젝트를 GitHub Pages로 배포하는 테스트 프로젝트�
 
 - `main` 또는 `copilot/deploy-github-pages` 브랜치에 push하면 자동으로 빌드 및 배포됩니다
 - **빌드 과정**:
-  1. GitHub-hosted runner (ubuntu-latest)에서 Unity WebGL 빌드 실행
+  1. Self-hosted runner에서 로컬 Unity 설치본(`D:\UnityEditor\2022.3.59f1\Editor\Unity.exe`)을 사용하여 WebGL 빌드 실행
   2. 빌드된 파일의 Gzip 압축 해제 (GitHub Pages 호환성)
   3. 빌드 결과물을 아티팩트로 저장
 - **배포 과정**:
-  1. 빌드 아티팩트 다운로드
+  1. GitHub-hosted runner (ubuntu-latest)에서 빌드 아티팩트 다운로드
   2. GitHub Pages에 배포
 - Actions 탭에서 빌드 및 배포 상태를 확인할 수 있습니다
 
-### Unity License 설정
+### Self-Hosted Runner 설정
 
-이 프로젝트는 GitHub Actions에서 Unity 빌드를 수행하기 위해 Unity License 정보가 필요합니다.
+이 프로젝트는 self-hosted runner를 사용하여 빌드를 수행합니다.
 
-**필수 Secrets 설정:**
+**요구 사항:**
+1. Windows 기반 self-hosted runner가 GitHub 저장소에 등록되어 있어야 합니다
+2. Unity 2022.3.59f1이 `D:\UnityEditor\2022.3.59f1\Editor\Unity.exe` 경로에 설치되어 있어야 합니다
 
-다음 secrets를 GitHub 저장소에 추가해야 합니다:
-
-1. **개인 라이선스 (Personal License) 사용 시:**
-   - `UNITY_LICENSE`: Unity 라이선스 파일 내용 (`.ulf` 파일)
-   - `UNITY_EMAIL`: Unity 계정 이메일
-   - `UNITY_PASSWORD`: Unity 계정 비밀번호
-
-2. **Professional/Plus 라이선스 사용 시:**
-   - `UNITY_SERIAL`: Unity Serial Key
-   - `UNITY_EMAIL`: Unity 계정 이메일  
-   - `UNITY_PASSWORD`: Unity 계정 비밀번호
-
-**Secrets 추가 방법:**
+**Self-Hosted Runner 등록 방법:**
 1. GitHub 저장소로 이동: https://github.com/gamej2026/SelfHostTest
 2. **Settings** (설정) 탭 클릭
-3. 왼쪽 메뉴에서 **Secrets and variables** → **Actions** 클릭
-4. **New repository secret** 버튼 클릭
-5. 각 secret의 이름과 값을 입력 후 저장
-
-**Unity License 파일 얻기:**
-- 개인 라이선스: [Game CI 문서](https://game.ci/docs/github/activation)를 참고하여 `.ulf` 파일 생성
+3. 왼쪽 메뉴에서 **Actions** → **Runners** 클릭
+4. **New self-hosted runner** 버튼 클릭
+5. Windows를 선택하고 제공되는 명령어를 실행하여 runner 설치 및 등록
 
 ## 🎮 프로젝트 정보
 

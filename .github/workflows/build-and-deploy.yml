@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       # 1. 저장소 코드 체크아웃
       - name: Checkout code
@@ -37,46 +37,59 @@ jobs:
             Library-WebGL-
             Library-
 
-      # 3. Unity 빌드 실행
+      # 3. Unity 빌드 실행 (Self-hosted runner with local Unity installation)
       - name: Build Unity WebGL
-        uses: game-ci/unity-builder@v4
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-        with:
-          targetPlatform: WebGL
-          unityVersion: 2022.3.59f1
-          buildName: webgl
+        shell: cmd
+        run: |
+          "D:\UnityEditor\6000.3.4f1\Editor\Unity.exe" -quit -batchmode -nographics -projectPath "%CD%" -executeMethod BuildScript.BuildWebGL -logFile build.log
+          if %ERRORLEVEL% NEQ 0 (
+            type build.log
+            exit /b %ERRORLEVEL%
+          )
 
       # 4. Gzip 압축 파일 해제 (GitHub Pages 호환성)
       - name: Decompress build files
+        shell: powershell
         run: |
-          buildDir="build/WebGL/webgl"
-          if [ -d "$buildDir/Build" ]; then
-            cd "$buildDir/Build"
-            for file in *.gz; do
-              if [ -f "$file" ]; then
-                gunzip -k "$file"
-                echo "Decompressed: $file"
-              fi
-            done
-            cd -
-
+          $buildDir = "build\webgl\Build"
+          if (Test-Path $buildDir) {
+            Get-ChildItem -Path $buildDir -Filter *.gz | ForEach-Object {
+              $outFile = $_.FullName -replace '\.gz$', ''
+              Write-Host "Decompressing: $($_.Name)"
+              
+              # PowerShell을 사용한 Gzip 압축 해제
+              $input = New-Object System.IO.FileStream $_.FullName, ([IO.FileMode]::Open), ([IO.FileAccess]::Read), ([IO.FileShare]::Read)
+              $output = New-Object System.IO.FileStream $outFile, ([IO.FileMode]::Create), ([IO.FileAccess]::Write), ([IO.FileShare]::None)
+              $gzipStream = New-Object System.IO.Compression.GzipStream $input, ([IO.Compression.CompressionMode]::Decompress)
+              
+              $buffer = New-Object byte[](1024)
+              while ($true) {
+                $read = $gzipStream.Read($buffer, 0, 1024)
+                if ($read -le 0) { break }
+                $output.Write($buffer, 0, $read)
+              }
+              
+              $gzipStream.Close()
+              $output.Close()
+              $input.Close()
+              
+              Write-Host "Decompressed: $($_.Name)"
+            }
+            
             # index.html에서 .gz 확장자 제거
-            indexFile="$buildDir/index.html"
-            if [ -f "$indexFile" ]; then
-              sed -i 's/\.gz"/"/g' "$indexFile"
-              echo "Updated index.html to reference decompressed files"
-            fi
-          fi
+            $indexFile = "build\webgl\index.html"
+            if (Test-Path $indexFile) {
+              (Get-Content $indexFile) -replace '\.gz"', '"' | Set-Content $indexFile
+              Write-Host "Updated index.html to reference decompressed files"
+            }
+          }
 
       # 5. 빌드 결과물을 아티팩트로 업로드
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: unity-webgl-build
-          path: build/WebGL/webgl
+          path: build/webgl
 
   deploy:
     needs: build
