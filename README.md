@@ -25,7 +25,7 @@ Unity WebGL 프로젝트를 GitHub Pages로 배포하는 테스트 프로젝트�
 
 - `main` 또는 `copilot/deploy-github-pages` 브랜치에 push하면 자동으로 빌드 및 배포됩니다
 - **빌드 과정**:
-  1. 셀프 호스티드 러너에서 Unity WebGL 빌드 실행
+  1. GitHub-hosted runner (ubuntu-latest)에서 Unity WebGL 빌드 실행
   2. 빌드된 파일의 Gzip 압축 해제 (GitHub Pages 호환성)
   3. 빌드 결과물을 아티팩트로 저장
 - **배포 과정**:
@@ -33,25 +33,33 @@ Unity WebGL 프로젝트를 GitHub Pages로 배포하는 테스트 프로젝트�
   2. GitHub Pages에 배포
 - Actions 탭에서 빌드 및 배포 상태를 확인할 수 있습니다
 
-### 셀프 호스티드 러너 설정
+### Unity License 설정
 
-이 프로젝트는 Unity 빌드를 위해 셀프 호스티드 러너를 사용합니다.
+이 프로젝트는 GitHub Actions에서 Unity 빌드를 수행하기 위해 Unity License 정보가 필요합니다.
 
-**러너 레이블 확인 방법:**
-1. 조직 설정 페이지 방문: https://github.com/organizations/gamej2026/settings/actions/runners
-2. 러너 목록에서 사용 중인 러너를 클릭
-3. 러너의 Labels 섹션 확인 (예: `self-hosted`, `macOS`, `X64` 등)
+**필수 Secrets 설정:**
 
-**워크플로우 설정 조정:**
-- 워크플로우 파일 (`.github/workflows/build-and-deploy.yml`)의 `runs-on` 값이 러너의 레이블과 정확히 일치해야 합니다
-- 현재 설정: `runs-on: [self-hosted, macOS]`
-- 러너 레이블이 다른 경우, 워크플로우 파일을 수정하여 일치시켜야 합니다
+다음 secrets를 GitHub 저장소에 추가해야 합니다:
 
-**문제 해결:**
-- 워크플로우가 "Waiting for a runner to pick up this job..." 상태에서 멈춘 경우:
-  1. 러너가 온라인 상태인지 확인
-  2. 러너 레이블이 워크플로우의 `runs-on` 값과 일치하는지 확인
-  3. 러너가 저장소 또는 조직에 접근 권한이 있는지 확인
+1. **개인 라이선스 (Personal License) 사용 시:**
+   - `UNITY_LICENSE`: Unity 라이선스 파일 내용 (`.ulf` 파일)
+   - `UNITY_EMAIL`: Unity 계정 이메일
+   - `UNITY_PASSWORD`: Unity 계정 비밀번호
+
+2. **Professional/Plus 라이선스 사용 시:**
+   - `UNITY_SERIAL`: Unity Serial Key
+   - `UNITY_EMAIL`: Unity 계정 이메일  
+   - `UNITY_PASSWORD`: Unity 계정 비밀번호
+
+**Secrets 추가 방법:**
+1. GitHub 저장소로 이동: https://github.com/gamej2026/SelfHostTest
+2. **Settings** (설정) 탭 클릭
+3. 왼쪽 메뉴에서 **Secrets and variables** → **Actions** 클릭
+4. **New repository secret** 버튼 클릭
+5. 각 secret의 이름과 값을 입력 후 저장
+
+**Unity License 파일 얻기:**
+- 개인 라이선스: [Game CI 문서](https://game.ci/docs/github/activation)를 참고하여 `.ulf` 파일 생성
 
 ## 🎮 프로젝트 정보
 
