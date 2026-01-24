@@ -52,14 +52,18 @@ jobs:
           echo Activating Unity license...
           if defined UNITY_LICENSE (
             echo Using license file
-            echo %UNITY_LICENSE% > unity.ulf 2>nul
+            (echo %UNITY_LICENSE%) > unity.ulf 2>nul
             "%UNITY_PATH%" -batchmode -manualLicenseFile unity.ulf -quit -logFile license-activate.log
             del unity.ulf 2>nul
           ) else if defined UNITY_EMAIL (
             echo Using credentials
             "%UNITY_PATH%" -batchmode -username "%UNITY_EMAIL%" -password "%UNITY_PASSWORD%" -serial "%UNITY_SERIAL%" -quit -logFile license-activate.log
           )
-          type license-activate.log 2>nul || echo No license log generated
+          if exist license-activate.log (
+            type license-activate.log
+          ) else (
+            echo No license log generated
+          )
 
       # 4. Unity 빌드 실행 (Self-hosted runner with local Unity installation)
       - name: Build Unity WebGL
@@ -80,8 +84,12 @@ jobs:
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         run: |
           echo Returning Unity license...
-          "%UNITY_PATH%" -quit -batchmode -returnlicense -logFile license-return.log || echo License return completed
-          type license-return.log 2>nul || echo No return log generated
+          "%UNITY_PATH%" -quit -batchmode -returnlicense -logFile license-return.log
+          if exist license-return.log (
+            type license-return.log
+          ) else (
+            echo No return log generated
+          )
 
       # 6. Gzip 압축 파일 해제 (GitHub Pages 호환성)
       - name: Decompress build files
