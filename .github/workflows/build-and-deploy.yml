@@ -37,7 +37,28 @@ jobs:
             Library-WebGL-
             Library-
 
-      # 3. Unity 빌드 실행 (Self-hosted runner with local Unity installation)
+      # 3. Unity 라이선스 활성화 (Self-hosted runner)
+      - name: Activate Unity License
+        if: ${{ env.UNITY_LICENSE != '' || env.UNITY_EMAIL != '' }}
+        shell: cmd
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          echo Activating Unity license...
+          if defined UNITY_LICENSE (
+            echo Using license file
+            echo %UNITY_LICENSE% > unity.alf
+            "D:\UnityEditor\6000.3.4f1\Editor\Unity.exe" -batchmode -manualLicenseFile unity.alf -logFile license-activate.log
+          ) else if defined UNITY_EMAIL (
+            echo Using credentials
+            "D:\UnityEditor\6000.3.4f1\Editor\Unity.exe" -batchmode -username "%UNITY_EMAIL%" -password "%UNITY_PASSWORD%" -serial "%UNITY_SERIAL%" -quit -logFile license-activate.log
+          )
+          type license-activate.log 2>nul || echo No license log generated
+
+      # 4. Unity 빌드 실행 (Self-hosted runner with local Unity installation)
       - name: Build Unity WebGL
         shell: cmd
         run: |
@@ -47,7 +68,19 @@ jobs:
             exit /b %ERRORLEVEL%
           )
 
-      # 4. Gzip 압축 파일 해제 (GitHub Pages 호환성)
+      # 5. Unity 라이선스 반환 (선택적)
+      - name: Return Unity License
+        if: always() && (env.UNITY_EMAIL != '' || env.UNITY_SERIAL != '')
+        shell: cmd
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          echo Returning Unity license...
+          "D:\UnityEditor\6000.3.4f1\Editor\Unity.exe" -quit -batchmode -returnlicense -logFile license-return.log || echo License return completed
+          type license-return.log 2>nul || echo No return log generated
+
+      # 6. Gzip 압축 파일 해제 (GitHub Pages 호환성)
       - name: Decompress build files
         shell: powershell -ExecutionPolicy RemoteSigned -File {0}
         run: |
@@ -84,7 +117,7 @@ jobs:
             }
           }
 
-      # 5. 빌드 결과물을 아티팩트로 업로드
+      # 7. 빌드 결과물을 아티팩트로 업로드
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
