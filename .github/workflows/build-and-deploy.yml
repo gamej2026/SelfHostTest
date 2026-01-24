@@ -41,7 +41,7 @@ jobs:
       - name: Build Unity WebGL
         shell: cmd
         run: |
-          "D:\UnityEditor\2022.3.59f1\Editor\Unity.exe" -quit -batchmode -nographics -projectPath "%CD%" -executeMethod BuildScript.BuildWebGL -logFile build.log
+          "D:\UnityEditor\6000.3.4f1\Editor\Unity.exe" -quit -batchmode -nographics -projectPath "%CD%" -executeMethod BuildScript.BuildWebGL -logFile build.log
           if %ERRORLEVEL% NEQ 0 (
             type build.log
             exit /b %ERRORLEVEL%
