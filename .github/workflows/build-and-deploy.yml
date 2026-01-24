@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: self-hosted,Windows,X64
     steps:
       # 1. 저장소 코드 체크아웃
       - name: Checkout code
