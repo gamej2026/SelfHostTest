@@ -41,7 +41,6 @@ jobs:
 
       # 3. Unity 라이선스 활성화 (Self-hosted runner)
       - name: Activate Unity License
-        if: ${{ secrets.UNITY_LICENSE != '' || secrets.UNITY_EMAIL != '' }}
         shell: cmd
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -77,7 +76,7 @@ jobs:
 
       # 5. Unity 라이선스 반환 (선택적)
       - name: Return Unity License
-        if: ${{ always() && secrets.UNITY_EMAIL != '' }}
+        if: always()
         shell: cmd
         env:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
