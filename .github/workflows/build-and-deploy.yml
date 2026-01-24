@@ -18,14 +18,10 @@ concurrency:
 
 jobs:
   build:
-    # Use specific runner labels to match your organization's self-hosted runner
-    # Common labels: [self-hosted, macOS], [self-hosted, Linux], [self-hosted, macOS, X64]
-    # Adjust these labels to match your runner's configuration in:
-    # https://github.com/organizations/gamej2026/settings/actions/runners
-    runs-on: [self-hosted, macOS]
+    runs-on: self-hosted
     env:
-      UNITY_PATH: /Applications/Unity/Hub/Editor/2022.3.59f1/Unity.app/Contents/MacOS/Unity
-    
+      UNITY_PATH: D:\UnityEditor\2022.3.59f1\Editor\Unity.exe
+
     steps:
       # 1. 저장소 코드 체크아웃
       - name: Checkout code
@@ -33,34 +29,38 @@ jobs:
 
       # 2. Unity 빌드 실행
       - name: Build Unity WebGL
+        shell: cmd
         run: |
-          ${{ env.UNITY_PATH }} \
-            -quit -batchmode -nographics \
-            -projectPath . \
-            -executeMethod BuildScript.BuildWebGL \
+          "%UNITY_PATH%" ^
+            -quit -batchmode -nographics ^
+            -projectPath . ^
+            -executeMethod BuildScript.BuildWebGL ^
             -logFile -
         continue-on-error: false
 
       # 3. Gzip 압축 파일 해제 (GitHub Pages 호환성)
       - name: Decompress build files
+        shell: pwsh
         run: |
-          if [ -d "build/webgl/Build" ]; then
-            cd build/webgl/Build
-            for file in *.gz; do
-              if [ -f "$file" ]; then
-                gunzip -k "$file"
-                echo "Decompressed: $file"
-              fi
-            done
-            cd ../../..
-            
-            # index.html에서 .gz 확장자 제거
-            if [ -f "build/webgl/index.html" ]; then
-              sed -i.bak 's/\.gz"/"/' build/webgl/index.html
-              rm build/webgl/index.html.bak
-              echo "Updated index.html to reference decompressed files"
-            fi
-          fi
+          $buildDir = "build/webgl/Build"
+          if (Test-Path $buildDir) {
+              Set-Location $buildDir
+              Get-ChildItem -Filter *.gz | ForEach-Object {
+                  $outFile = $_.FullName -replace '\.gz$',''
+                  # gzip 압축 해제
+                  # Windows 기본 PowerShell에는 gunzip이 없으므로, 7z로 대체
+                  7z e $_.FullName -so > $outFile
+                  Write-Output "Decompressed: $($_.Name)"
+              }
+              Set-Location ../../../
+
+              # index.html에서 .gz 확장자 제거
+              $indexFile = "build/webgl/index.html"
+              if (Test-Path $indexFile) {
+                  (Get-Content $indexFile) -replace '\.gz"', '"' | Set-Content $indexFile
+                  Write-Output "Updated index.html to reference decompressed files"
+              }
+          }
 
       # 4. 빌드 결과물을 아티팩트로 업로드
       - name: Upload build artifact
@@ -75,7 +75,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    
+
     steps:
       # 1. 빌드 아티팩트 다운로드
       - name: Download build artifact
