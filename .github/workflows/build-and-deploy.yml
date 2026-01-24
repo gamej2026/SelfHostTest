@@ -41,7 +41,6 @@ jobs:
 
       # 3. Unity 라이선스 활성화 (Self-hosted runner)
       - name: Activate Unity License
-        if: ${{ UNITY_LICENSE || UNITY_EMAIL }}
         shell: cmd
         run: |
           echo Activating Unity license...
@@ -72,8 +71,8 @@ jobs:
 
       # 5. Unity 라이선스 반환 (선택적)
       - name: Return Unity License
-        if: ${{ always() && UNITY_EMAIL }}
-        shell: 
+        if: always()
+        shell: cmd
         run: |
           echo Returning Unity license...
           "%UNITY_PATH%" -quit -batchmode -returnlicense -logFile license-return.log
