@@ -33,6 +33,26 @@ Unity WebGL 프로젝트를 GitHub Pages로 배포하는 테스트 프로젝트�
   2. GitHub Pages에 배포
 - Actions 탭에서 빌드 및 배포 상태를 확인할 수 있습니다
 
+### 셀프 호스티드 러너 설정
+
+이 프로젝트는 Unity 빌드를 위해 셀프 호스티드 러너를 사용합니다.
+
+**러너 레이블 확인 방법:**
+1. 조직 설정 페이지 방문: https://github.com/organizations/gamej2026/settings/actions/runners
+2. 러너 목록에서 사용 중인 러너를 클릭
+3. 러너의 Labels 섹션 확인 (예: `self-hosted`, `macOS`, `X64` 등)
+
+**워크플로우 설정 조정:**
+- 워크플로우 파일 (`.github/workflows/build-and-deploy.yml`)의 `runs-on` 값이 러너의 레이블과 정확히 일치해야 합니다
+- 현재 설정: `runs-on: [self-hosted, macOS]`
+- 러너 레이블이 다른 경우, 워크플로우 파일을 수정하여 일치시켜야 합니다
+
+**문제 해결:**
+- 워크플로우가 "Waiting for a runner to pick up this job..." 상태에서 멈춘 경우:
+  1. 러너가 온라인 상태인지 확인
+  2. 러너 레이블이 워크플로우의 `runs-on` 값과 일치하는지 확인
+  3. 러너가 저장소 또는 조직에 접근 권한이 있는지 확인
+
 ## 🎮 프로젝트 정보
 
 - **Unity Version**: 2022.3.59f1
