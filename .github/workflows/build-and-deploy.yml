@@ -18,7 +18,11 @@ concurrency:
 
 jobs:
   build:
-    runs-on: self-hosted
+    # Use specific runner labels to match your organization's self-hosted runner
+    # Common labels: [self-hosted, macOS], [self-hosted, Linux], [self-hosted, macOS, X64]
+    # Adjust these labels to match your runner's configuration in:
+    # https://github.com/organizations/gamej2026/settings/actions/runners
+    runs-on: [self-hosted, macOS]
     env:
       UNITY_PATH: /Applications/Unity/Hub/Editor/2022.3.59f1/Unity.app/Contents/MacOS/Unity
     
