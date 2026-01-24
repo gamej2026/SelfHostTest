@@ -53,7 +53,7 @@ jobs:
           if defined UNITY_LICENSE (
             echo Using license file
             echo %UNITY_LICENSE% > unity.ulf
-            "%UNITY_PATH%" -batchmode -manualLicenseFile unity.ulf -logFile license-activate.log
+            "%UNITY_PATH%" -batchmode -manualLicenseFile unity.ulf -quit -logFile license-activate.log
             del unity.ulf 2>nul
           ) else if defined UNITY_EMAIL (
             echo Using credentials
@@ -73,7 +73,7 @@ jobs:
 
       # 5. Unity 라이선스 반환 (선택적)
       - name: Return Unity License
-        if: always() && (secrets.UNITY_EMAIL || secrets.UNITY_SERIAL)
+        if: always() && secrets.UNITY_EMAIL
         shell: cmd
         env:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
