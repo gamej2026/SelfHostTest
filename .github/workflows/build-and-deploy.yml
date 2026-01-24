@@ -1,0 +1,43 @@
+name: Build WebGL and Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: self-hosted  # 💡 자신의 PC에서 실행
+    
+    steps:
+      # 1. 저장소 코드 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: true  # Git LFS 활성화 (큰 파일용)
+
+      # 3. WebGL 빌드 수행
+      - name: Build WebGL
+        run: |
+          & "D:\UnityEditor\2022.3.59f1\Editor\Unity.exe" `
+            -quit `
+            -batchmode `
+            -nographics `
+            -logFile - `
+            -projectPath . `
+            -executeMethod BuildScript.BuildWebGL `
+            -buildPath "build/webgl"
+        
+      # 4. 빌드 산출물 아티팩트로 저장
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webgl-build
+          path: build/webgl
+
+      # 5. GitHub Pages에 배포
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/webgl
