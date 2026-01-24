@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main, copilot/deploy-github-pages ]
+    branches: [main, copilot/deploy-github-pages]
   workflow_dispatch:
 
 # GitHub Pages 배포를 위한 권한 설정
@@ -61,7 +61,7 @@ jobs:
               fi
             done
             cd -
-            
+
             # index.html에서 .gz 확장자 제거
             indexFile="$buildDir/index.html"
             if [ -f "$indexFile" ]; then
