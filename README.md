@@ -21,11 +21,17 @@ Unity WebGL 프로젝트를 GitHub Pages로 배포하는 테스트 프로젝트�
 4. **Source** 섹션에서 **GitHub Actions** 선택
 5. 저장
 
-### 자동 배포
+### 자동 빌드 및 배포
 
-- `main` 또는 `copilot/deploy-github-pages` 브랜치에 push하면 자동으로 배포됩니다
-- GitHub Actions 워크플로우가 `build` 디렉토리의 Unity WebGL 빌드를 GitHub Pages에 배포합니다
-- Actions 탭에서 배포 상태를 확인할 수 있습니다
+- `main` 또는 `copilot/deploy-github-pages` 브랜치에 push하면 자동으로 빌드 및 배포됩니다
+- **빌드 과정**:
+  1. 셀프 호스티드 러너에서 Unity WebGL 빌드 실행
+  2. 빌드된 파일의 Gzip 압축 해제 (GitHub Pages 호환성)
+  3. 빌드 결과물을 아티팩트로 저장
+- **배포 과정**:
+  1. 빌드 아티팩트 다운로드
+  2. GitHub Pages에 배포
+- Actions 탭에서 빌드 및 배포 상태를 확인할 수 있습니다
 
 ## 🎮 프로젝트 정보
 
@@ -40,14 +46,16 @@ Unity WebGL 프로젝트를 GitHub Pages로 배포하는 테스트 프로젝트�
 ├── Assets/              # Unity 에셋 파일
 │   ├── Editor/         # 에디터 스크립트
 │   │   └── BuildScript.cs  # WebGL 빌드 스크립트
+│   ├── Scripts/        # 게임 로직 스크립트
 │   └── Scenes/         # Unity 씬
-├── build/              # WebGL 빌드 출력
-│   ├── Build/          # 빌드 파일 (wasm, js, data)
-│   ├── TemplateData/   # Unity 템플릿 리소스
-│   └── index.html      # 메인 HTML 파일
+├── build/              # WebGL 빌드 출력 (GitHub Actions에서 생성)
+│   └── webgl/          # Unity WebGL 빌드 결과
+│       ├── Build/      # 빌드 파일 (wasm, js, data)
+│       ├── TemplateData/   # Unity 템플릿 리소스
+│       └── index.html  # 메인 HTML 파일
 └── .github/
     └── workflows/
-        └── build-and-deploy.yml  # GitHub Actions 워크플로우
+        └── build-and-deploy.yml  # GitHub Actions 워크플로우 (빌드 + 배포)
 ```
 
 ## 🔧 로컬 빌드
@@ -71,18 +79,23 @@ Unable to parse Build/build.framework.js.gz! This can happen if build compressio
 
 **원인**: GitHub Pages는 `.gz` 파일을 제공할 때 `Content-Encoding: gzip` 헤더를 자동으로 설정하지 않아, Unity 로더가 압축된 파일을 올바르게 처리하지 못합니다.
 
-**해결 방법**: 이 저장소에서는 빌드 파일을 압축 해제하여 문제를 해결했습니다:
+**해결 방법**: 이 저장소의 GitHub Actions 워크플로우는 빌드 후 자동으로 압축 파일을 해제하여 이 문제를 해결합니다. 워크플로우는 다음 작업을 수행합니다:
+
+1. Unity WebGL 빌드 실행
+2. 생성된 `.gz` 파일 압축 해제
+3. `index.html`에서 `.gz` 확장자 참조 제거
+4. GitHub Pages에 배포
+
+**로컬 빌드 시**: 수동으로 빌드한 경우, 다음 명령어로 압축을 해제할 수 있습니다:
 
 ```bash
-cd build/Build
+cd build/webgl/Build
 gunzip -k build.data.gz
 gunzip -k build.framework.js.gz
 gunzip -k build.wasm.gz
 ```
 
-그리고 `build/index.html`에서 `.gz` 확장자를 제거하여 압축 해제된 파일을 참조하도록 수정했습니다.
-
-**대안**: Unity Editor에서 빌드할 때 Project Settings → Player → Publishing Settings → Decompression Fallback을 활성화하면 이 문제를 방지할 수 있습니다.
+그리고 `build/webgl/index.html`에서 `.gz` 확장자를 제거하여 압축 해제된 파일을 참조하도록 수정해야 합니다.
 
 ## 📝 라이센스
 
