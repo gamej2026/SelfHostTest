@@ -19,6 +19,8 @@ concurrency:
 jobs:
   build:
     runs-on: self-hosted
+    env:
+      UNITY_PATH: /Applications/Unity/Hub/Editor/2022.3.59f1/Unity.app/Contents/MacOS/Unity
     
     steps:
       # 1. 저장소 코드 체크아웃
@@ -28,7 +30,7 @@ jobs:
       # 2. Unity 빌드 실행
       - name: Build Unity WebGL
         run: |
-          /Applications/Unity/Hub/Editor/2022.3.59f1/Unity.app/Contents/MacOS/Unity \
+          ${{ env.UNITY_PATH }} \
             -quit -batchmode -nographics \
             -projectPath . \
             -executeMethod BuildScript.BuildWebGL \
@@ -50,7 +52,8 @@ jobs:
             
             # index.html에서 .gz 확장자 제거
             if [ -f "build/webgl/index.html" ]; then
-              sed -i '' 's/\.gz"/"/' build/webgl/index.html
+              sed -i.bak 's/\.gz"/"/' build/webgl/index.html
+              rm build/webgl/index.html.bak
               echo "Updated index.html to reference decompressed files"
             fi
           fi
