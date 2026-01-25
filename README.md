@@ -58,15 +58,20 @@ Self-hosted runner에서 Unity를 배치 모드로 실행하려면 라이선스�
 2. Unity 계정으로 로그인하여 라이선스 활성화
 3. 이후 GitHub Actions 워크플로우가 자동으로 해당 라이선스를 사용
 
-**옵션 2: GitHub Secrets를 사용한 자동 활성화**
-1. GitHub 저장소의 Settings → Secrets and variables → Actions로 이동
-2. 다음 secrets를 추가:
-   - `UNITY_EMAIL`: Unity 계정 이메일
-   - `UNITY_PASSWORD`: Unity 계정 비밀번호
-   - `UNITY_SERIAL`: Unity 라이선스 시리얼 키
-   또는
-   - `UNITY_LICENSE`: Unity 라이선스 파일 내용 (.ulf 파일)
-3. 워크플로우가 자동으로 빌드 전에 라이선스를 활성화하고 빌드 후 반환
+**옵션 2: Unity 라이선스 파일 사용 (GitHub Secrets)**
+1. Unity 라이선스 파일(`.ulf`)을 준비합니다:
+   - **방법 A**: 이미 활성화된 경우 `C:\ProgramData\Unity\Unity_lic.ulf` 파일을 복사
+   - **방법 B**: Unity Hub에서 Manual Activation을 통해 라이선스 파일 생성
+     1. Unity Hub 실행 → Preferences → Licenses
+     2. Add license → Get a free personal license (또는 기존 라이선스 사용)
+     3. Manual Activation 선택 → `.alf` 파일 생성
+     4. https://license.unity3d.com/ 에서 `.alf` 파일 업로드 → `.ulf` 파일 다운로드
+2. GitHub 저장소의 Settings → Secrets and variables → Actions로 이동
+3. **New repository secret** 클릭
+4. Name: `UNITY_LICENSE`, Value: `.ulf` 파일의 전체 내용 (파일 내용을 텍스트로 복사하여 붙여넣기)
+5. 워크플로우가 자동으로 빌드 전에 라이선스 파일을 설정
+
+**중요**: Unity Personal 라이선스는 무료이지만 수익 기준이 있습니다. Unity Plus/Pro 라이선스를 사용하는 경우에도 동일한 방법으로 설정할 수 있습니다.
 
 ## 🎮 프로젝트 정보
 
