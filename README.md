@@ -55,27 +55,25 @@ Unity WebGL 프로젝트를 GitHub Pages로 배포하는 테스트 프로젝트�
 
 Self-hosted runner에서 Unity를 배치 모드로 실행하려면 라이선스가 필요합니다. 다음 두 가지 방법 중 하나를 선택하세요:
 
-**옵션 1: Self-hosted runner 머신에서 Unity 수동 활성화 (권장)**
+**옵션 1: EMAIL과 PASSWORD를 사용한 자동 활성화 (권장)**
+
+Unity Personal 라이선스는 더 이상 수동 활성화 파일(.ulf)을 지원하지 않습니다. 대신 EMAIL과 PASSWORD를 사용하여 자동으로 라이선스를 활성화할 수 있습니다:
+
+1. GitHub 저장소의 Settings → Secrets and variables → Actions로 이동
+2. 다음 시크릿을 추가합니다:
+   - **UNITY_EMAIL**: Unity 계정 이메일 주소
+   - **UNITY_PASSWORD**: Unity 계정 비밀번호
+3. 워크플로우가 자동으로 빌드 전에 `unity-activate` 도구를 사용하여 라이선스를 활성화합니다
+4. 참고: Google 계정으로 로그인하는 경우, Unity 계정 설정에서 비밀번호를 직접 설정해야 합니다
+5. 참고: 2FA가 활성화된 경우, 추가 설정이 필요할 수 있습니다
+
+**옵션 2: Self-hosted runner 머신에서 Unity 수동 활성화**
+
 1. Self-hosted runner 머신에서 Unity Editor를 실행
 2. Unity 계정으로 로그인하여 라이선스 활성화
 3. 이후 GitHub Actions 워크플로우가 자동으로 해당 라이선스를 사용
 
-**옵션 2: Unity 라이선스 파일 사용 (GitHub Secrets)**
-1. Unity 라이선스 파일(`.ulf`)을 준비합니다:
-   - **방법 A**: 이미 활성화된 경우 다음 경로에서 파일을 복사
-     - Windows: `C:\ProgramData\Unity\Unity_lic.ulf`
-     - macOS: `~/Library/Application Support/Unity/Unity_lic.ulf`
-   - **방법 B**: Unity Hub에서 Manual Activation을 통해 라이선스 파일 생성
-     1. Unity Hub 실행 → Preferences → Licenses
-     2. Add license → Get a free personal license (또는 기존 라이선스 사용)
-     3. Manual Activation 선택 → `.alf` 파일 생성
-     4. https://license.unity3d.com/ 에서 `.alf` 파일 업로드 → `.ulf` 파일 다운로드
-2. GitHub 저장소의 Settings → Secrets and variables → Actions로 이동
-3. **New repository secret** 클릭
-4. Name: `UNITY_LICENSE`, Value: `.ulf` 파일의 전체 내용 (파일 내용을 텍스트로 복사하여 붙여넣기)
-5. 워크플로우가 자동으로 빌드 전에 라이선스 파일을 설정
-
-**중요**: Unity Personal 라이선스는 무료이지만 수익 기준이 있습니다. Unity Plus/Pro 라이선스를 사용하는 경우에도 동일한 방법으로 설정할 수 있습니다.
+**중요**: Unity Personal 라이선스는 무료이지만 수익 기준이 있습니다. Unity Plus/Pro 라이선스를 사용하는 경우에도 EMAIL/PASSWORD 방식이나 수동 활성화 방식을 사용할 수 있습니다.
 
 ## 🎮 프로젝트 정보
 
