@@ -411,8 +411,8 @@ jobs:
           LOG_FILE="$PROJECT_PATH/build.log"
           
           # Unity 빌드 명령 실행
-          "$UNITY_PATH" -batchmode -nographics -quit -projectPath "$PROJECT_PATH" -buildTarget WebGL -executeMethod BuildScript.BuildWebGL -noUpm -logFile "$LOG_FILE"
-          EXIT_CODE=$?
+          "$UNITY_PATH" -batchmode -nographics -quit -projectPath "$PROJECT_PATH" -buildTarget WebGL -executeMethod BuildScript.BuildWebGL -noUpm -logFile "$LOG_FILE" || EXIT_CODE=$?
+          EXIT_CODE=${EXIT_CODE:-0}
           
           # 로그 출력
           if [ -f "$LOG_FILE" ]; then
