@@ -117,7 +117,7 @@ jobs:
             }
             
             # ALF 파일 생성 (Manual Activation File)
-            $alfFile = Join-Path $PWD.Path "Unity_v2020.alf"
+            $alfFile = Join-Path $PWD.Path "Unity.alf"
             Write-Host "ALF 파일 생성 중: $alfFile"
             
             $process = Start-Process -FilePath $unityPath `
@@ -237,10 +237,16 @@ jobs:
             fi
             
             # ALF 파일 생성 (Manual Activation File)
-            ALF_FILE="$PWD/Unity_v2020.alf"
+            ALF_FILE="$PWD/Unity.alf"
             echo "ALF 파일 생성 중: $ALF_FILE"
             
-            "$UNITY_PATH" -batchmode -nographics -quit -createManualActivationFile -logFile - || true
+            "$UNITY_PATH" -batchmode -nographics -quit -createManualActivationFile -logFile - 2>&1 || {
+              EXIT_CODE=$?
+              if [ ! -f "$ALF_FILE" ]; then
+                echo "ALF 파일 생성 실패 (Exit Code: $EXIT_CODE)"
+                exit 1
+              fi
+            }
             
             if [ ! -f "$ALF_FILE" ]; then
               echo "ALF 파일 생성 실패"
