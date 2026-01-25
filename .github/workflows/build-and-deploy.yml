@@ -37,13 +37,12 @@ jobs:
             Library-WebGL-
             Library-
 
-      # 3. Unity 라이센스 활성화 (PowerShell 스크립트 사용)
-      - name: Activate Unity License
+      # 3. Unity 라이센스 확인 및 활성화 (PowerShell 스크립트 사용)
+      - name: Check and Activate Unity License
         shell: powershell -ExecutionPolicy Bypass -File {0}
         env:
           UNITY_PATH: ${{ vars.UNITY_PATH }}
-          UNITY_USERNAME: ${{ secrets.UNITY_USERNAME }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
         run: |
           # Unity 설치 경로 찾기
           $unityPath = $env:UNITY_PATH
@@ -88,35 +87,59 @@ jobs:
           
           Write-Host "Unity 경로: $unityPath"
           
-          # Unity 라이센스 활성화
-          $username = $env:UNITY_USERNAME
-          $password = $env:UNITY_PASSWORD
+          # Unity 라이센스 파일 확인
+          $unityLicenseContent = $env:UNITY_LICENSE
           
-          if (-not $username -or -not $password) {
-            Write-Warning "UNITY_USERNAME 또는 UNITY_PASSWORD가 설정되지 않았습니다. 기존 라이센스를 사용합니다."
-          } else {
-            Write-Host "Unity Personal 라이센스 활성화 중..."
+          if ($unityLicenseContent) {
+            Write-Host "Unity 라이센스 파일을 설정합니다..."
             
-            $logFile = Join-Path $PWD.Path "license-activation.log"
+            # Unity 라이센스 파일 경로 (Windows)
+            $licensePath = "$env:ProgramData\Unity\Unity_lic.ulf"
+            $licenseDir = Split-Path $licensePath -Parent
             
-            # Unity 라이센스 활성화 명령 실행
-            $process = Start-Process -FilePath $unityPath `
-              -ArgumentList "-batchmode", "-nographics", "-quit", "-logFile", $logFile, "-username", $username, "-password", $password `
-              -Wait -PassThru -NoNewWindow
-            
-            $exitCode = $process.ExitCode
-            
-            # 로그 출력
-            if (Test-Path $logFile) {
-              Write-Host "`n=== Unity License Activation Log ===`n"
-              Get-Content $logFile | Select-Object -Last 50
+            # 디렉토리가 없으면 생성
+            if (-not (Test-Path $licenseDir)) {
+              New-Item -Path $licenseDir -ItemType Directory -Force | Out-Null
             }
             
-            # 활성화 결과 확인
-            if ($exitCode -ne 0) {
-              Write-Warning "Unity 라이센스 활성화가 실패했을 수 있습니다 (Exit Code: $exitCode). 기존 라이센스로 계속 진행합니다."
+            # 라이센스 파일 저장 (줄바꿈 문자 유지, UTF8 인코딩)
+            # -NoNewline을 사용하지 않고 원본 그대로 저장하여 라이센스 파일 무결성 유지
+            $unityLicenseContent | Out-File -FilePath $licensePath -Encoding UTF8 -Force
+            Write-Host "Unity 라이센스 파일이 저장되었습니다: $licensePath"
+          } else {
+            Write-Host "UNITY_LICENSE 시크릿이 설정되지 않았습니다. 기존 라이센스를 사용합니다."
+            Write-Host "참고: Self-hosted runner에서 Unity를 수동으로 활성화했거나, 유효한 라이센스 파일이 이미 존재해야 합니다."
+          }
+          
+          # 라이센스 상태 확인 (간단한 테스트)
+          Write-Host "`n라이센스 상태를 확인합니다..."
+          $testLogFile = Join-Path $PWD.Path "license-test.log"
+          
+          $process = Start-Process -FilePath $unityPath `
+            -ArgumentList "-batchmode", "-nographics", "-quit", "-logFile", $testLogFile `
+            -Wait -PassThru -NoNewWindow
+          
+          # 로그 확인
+          if (Test-Path $testLogFile) {
+            $logContent = Get-Content $testLogFile -Raw
+            
+            # 라이센스 오류 확인 (정확한 패턴 매칭)
+            if ($logContent -match "No valid Unity Editor license found" -or $logContent -match "Error.*com\.unity\.editor\.headless.*not found") {
+              Write-Host "`n=== License Test Log ===`n"
+              Get-Content $testLogFile | Select-Object -Last 30
+              Write-Warning @"
+
+Unity 라이센스가 활성화되지 않았습니다.
+Self-hosted runner에서 다음 중 하나를 수행해야 합니다:
+1. Unity를 열고 수동으로 로그인하여 라이센스 활성화
+2. 유효한 Unity 라이센스 파일(.ulf)을 GitHub Secrets에 UNITY_LICENSE로 추가
+
+라이센스 파일 가져오기 방법:
+- Unity Editor를 열고 Help > Manage License > Manual Activation
+- 또는 이미 활성화된 경우: C:\ProgramData\Unity\Unity_lic.ulf 파일 사용
+"@
             } else {
-              Write-Host "Unity 라이센스 활성화 성공!"
+              Write-Host "Unity 라이센스가 정상적으로 확인되었습니다."
             }
           }
 
@@ -174,8 +197,9 @@ jobs:
           $logFile = Join-Path $projectPath "build.log"
           
           # Start-Process를 사용하여 프로세스를 실행하고 종료 코드를 캡처
+          # 참고: -batchmode와 -nographics는 앞쪽에 배치하여 Unity가 올바르게 batch mode로 실행되도록 합니다
           $process = Start-Process -FilePath $unityPath `
-            -ArgumentList "-projectPath", $projectPath, "-buildTarget", "WebGL", "-executeMethod", "BuildScript.BuildWebGL", "-quit", "-batchmode", "-nographics", "-noUpm", "-logFile", $logFile `
+            -ArgumentList "-batchmode", "-nographics", "-quit", "-projectPath", $projectPath, "-buildTarget", "WebGL", "-executeMethod", "BuildScript.BuildWebGL", "-noUpm", "-logFile", $logFile `
             -Wait -PassThru -NoNewWindow
           
           $exitCode = $process.ExitCode
