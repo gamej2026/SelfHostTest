@@ -102,15 +102,39 @@ jobs:
           
           Write-Host "Unity 경로: $unityPath"
           
-          # Unity 이메일 및 패스워드 확인
+          # Unity 라이센스 파일 경로 (Windows)
+          $licensePath = "$env:ProgramData\Unity\Unity_lic.ulf"
+          
+          # 먼저 라이센스 상태 확인 (기존 라이센스가 있는지 체크)
+          Write-Host "라이센스 상태를 확인합니다..."
+          $testLogFile = Join-Path $PWD.Path "license-test.log"
+          
+          $process = Start-Process -FilePath $unityPath `
+            -ArgumentList "-batchmode", "-nographics", "-quit", "-logFile", $testLogFile `
+            -Wait -PassThru -NoNewWindow
+          
+          # 로그 확인
+          $licenseValid = $false
+          if (Test-Path $testLogFile) {
+            $logContent = Get-Content $testLogFile -Raw
+            
+            # 라이센스 오류 확인 (정확한 패턴 매칭)
+            if ($logContent -match "No valid Unity Editor license found" -or $logContent -match "Error.*com\.unity\.editor\.headless.*not found") {
+              Write-Host "유효한 Unity 라이센스가 없습니다."
+              $licenseValid = $false
+            } else {
+              Write-Host "Unity 라이센스가 이미 활성화되어 있습니다. 재활성화를 건너뜁니다."
+              $licenseValid = $true
+            }
+          }
+          
+          # Unity 이메일 및 패스워드 확인 - 라이센스가 없을 때만 활성화 시도
           $unityEmail = $env:UNITY_EMAIL
           $unityPassword = $env:UNITY_PASSWORD
           
-          if ($unityEmail -and $unityPassword) {
+          if (-not $licenseValid -and $unityEmail -and $unityPassword) {
             Write-Host "Unity 라이센스를 EMAIL/PASSWORD로 활성화합니다..."
             
-            # Unity 라이센스 파일 경로 (Windows)
-            $licensePath = "$env:ProgramData\Unity\Unity_lic.ulf"
             $licenseDir = Split-Path $licensePath -Parent
             
             # 디렉토리가 없으면 생성
@@ -150,31 +174,29 @@ jobs:
             }
             
             Write-Host "Unity 라이센스가 활성화되었습니다: $licensePath"
-          } else {
+            
+            # 재확인
+            Write-Host "`n라이센스 활성화 후 상태를 재확인합니다..."
+            $testLogFile2 = Join-Path $PWD.Path "license-test-final.log"
+            
+            $process = Start-Process -FilePath $unityPath `
+              -ArgumentList "-batchmode", "-nographics", "-quit", "-logFile", $testLogFile2 `
+              -Wait -PassThru -NoNewWindow
+            
+            if (Test-Path $testLogFile2) {
+              $logContent2 = Get-Content $testLogFile2 -Raw
+              
+              if ($logContent2 -match "No valid Unity Editor license found" -or $logContent2 -match "Error.*com\.unity\.editor\.headless.*not found") {
+                Write-Host "`n=== License Test Log ===`n"
+                Get-Content $testLogFile2 | Select-Object -Last 30
+                Write-Warning "Unity 라이센스가 활성화되지 않았습니다."
+              } else {
+                Write-Host "Unity 라이센스가 정상적으로 확인되었습니다."
+              }
+            }
+          } elseif (-not $licenseValid) {
             Write-Host "UNITY_EMAIL 또는 UNITY_PASSWORD 시크릿이 설정되지 않았습니다. 기존 라이센스를 사용합니다."
             Write-Host "참고: Self-hosted runner에서 Unity를 수동으로 활성화했거나, 유효한 라이센스 파일이 이미 존재해야 합니다."
-          }
-          
-          # 라이센스 상태 확인 (간단한 테스트)
-          Write-Host "`n라이센스 상태를 확인합니다..."
-          $testLogFile = Join-Path $PWD.Path "license-test.log"
-          
-          $process = Start-Process -FilePath $unityPath `
-            -ArgumentList "-batchmode", "-nographics", "-quit", "-logFile", $testLogFile `
-            -Wait -PassThru -NoNewWindow
-          
-          # 로그 확인
-          if (Test-Path $testLogFile) {
-            $logContent = Get-Content $testLogFile -Raw
-            
-            # 라이센스 오류 확인 (정확한 패턴 매칭)
-            if ($logContent -match "No valid Unity Editor license found" -or $logContent -match "Error.*com\.unity\.editor\.headless.*not found") {
-              Write-Host "`n=== License Test Log ===`n"
-              Get-Content $testLogFile | Select-Object -Last 30
-              Write-Warning "Unity 라이센스가 활성화되지 않았습니다."
-            } else {
-              Write-Host "Unity 라이센스가 정상적으로 확인되었습니다."
-            }
           }
 
       # 6. Unity 라이센스 활성화 (macOS - bash)
@@ -223,8 +245,29 @@ jobs:
           
           echo "Unity 경로: $UNITY_PATH"
           
-          # Unity 이메일 및 패스워드 확인
-          if [ -n "$UNITY_EMAIL" ] && [ -n "$UNITY_PASSWORD" ]; then
+          # 먼저 라이센스 상태 확인 (기존 라이센스가 있는지 체크)
+          echo "라이센스 상태를 확인합니다..."
+          TEST_LOG_FILE="$PWD/license-test.log"
+          
+          "$UNITY_PATH" -batchmode -nographics -quit -logFile "$TEST_LOG_FILE" || true
+          
+          # 로그 확인
+          LICENSE_VALID=false
+          if [ -f "$TEST_LOG_FILE" ]; then
+            LOG_CONTENT=$(cat "$TEST_LOG_FILE")
+            
+            # 라이센스 오류 확인
+            if echo "$LOG_CONTENT" | grep -q "No valid Unity Editor license found\|Error.*com\.unity\.editor\.headless.*not found"; then
+              echo "유효한 Unity 라이센스가 없습니다."
+              LICENSE_VALID=false
+            else
+              echo "Unity 라이센스가 이미 활성화되어 있습니다. 재활성화를 건너뜁니다."
+              LICENSE_VALID=true
+            fi
+          fi
+          
+          # Unity 이메일 및 패스워드 확인 - 라이센스가 없을 때만 활성화 시도
+          if [ "$LICENSE_VALID" != "true" ] && [ -n "$UNITY_EMAIL" ] && [ -n "$UNITY_PASSWORD" ]; then
             echo "Unity 라이센스를 EMAIL/PASSWORD로 활성화합니다..."
             
             # Unity Personal 라이센스의 경우, 직접 username/password로 활성화
@@ -256,33 +299,31 @@ jobs:
               echo "Unity 라이센스 활성화 중 경고가 발생했습니다 (Exit Code: $ACTIVATION_EXIT_CODE)."
               echo "라이센스 상태를 확인합니다..."
             fi
-          else
+            
+            # 재확인
+            echo ""
+            echo "라이센스 활성화 후 상태를 재확인합니다..."
+            TEST_LOG_FILE_FINAL="$PWD/license-test-final.log"
+            
+            "$UNITY_PATH" -batchmode -nographics -quit -logFile "$TEST_LOG_FILE_FINAL" || true
+            
+            if [ -f "$TEST_LOG_FILE_FINAL" ]; then
+              LOG_CONTENT_FINAL=$(cat "$TEST_LOG_FILE_FINAL")
+              
+              if echo "$LOG_CONTENT_FINAL" | grep -q "No valid Unity Editor license found\|Error.*com\.unity\.editor\.headless.*not found"; then
+                echo ""
+                echo "=== License Test Log ==="
+                echo ""
+                tail -n 30 "$TEST_LOG_FILE_FINAL"
+                echo "Unity 라이센스가 활성화되지 않았습니다."
+                exit 1
+              else
+                echo "Unity 라이센스가 정상적으로 확인되었습니다."
+              fi
+            fi
+          elif [ "$LICENSE_VALID" != "true" ]; then
             echo "UNITY_EMAIL 또는 UNITY_PASSWORD 시크릿이 설정되지 않았습니다. 기존 라이센스를 사용합니다."
             echo "참고: Self-hosted runner에서 Unity를 수동으로 활성화했거나, 유효한 라이센스 파일이 이미 존재해야 합니다."
-          fi
-          
-          # 라이센스 상태 확인 (간단한 테스트)
-          echo ""
-          echo "라이센스 상태를 확인합니다..."
-          TEST_LOG_FILE="$PWD/license-test.log"
-          
-          "$UNITY_PATH" -batchmode -nographics -quit -logFile "$TEST_LOG_FILE" || true
-          
-          # 로그 확인
-          if [ -f "$TEST_LOG_FILE" ]; then
-            LOG_CONTENT=$(cat "$TEST_LOG_FILE")
-            
-            # 라이센스 오류 확인
-            if echo "$LOG_CONTENT" | grep -q "No valid Unity Editor license found\|Error.*com\.unity\.editor\.headless.*not found"; then
-              echo ""
-              echo "=== License Test Log ==="
-              echo ""
-              tail -n 30 "$TEST_LOG_FILE"
-              echo "Unity 라이센스가 활성화되지 않았습니다."
-              exit 1
-            else
-              echo "Unity 라이센스가 정상적으로 확인되었습니다."
-            fi
           fi
 
       # 7. Unity 빌드 실행 (Windows - PowerShell)
