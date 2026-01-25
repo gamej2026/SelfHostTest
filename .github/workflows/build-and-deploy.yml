@@ -41,53 +41,53 @@ jobs:
 
       # 3. Unity 라이선스 활성화 (Self-hosted runner)
       - name: Activate Unity License
-        shell: cmd
+        shell: powershell
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         run: |
-          echo Activating Unity license...
-          if defined UNITY_LICENSE (
-            echo Using license file
-            (echo %UNITY_LICENSE%) > unity.ulf 2>nul
-            "%UNITY_PATH%" -batchmode -manualLicenseFile unity.ulf -quit -logFile license-activate.log
-            del unity.ulf 2>nul
-          ) else if defined UNITY_EMAIL (
-            echo Using credentials
-            "%UNITY_PATH%" -batchmode -username "%UNITY_EMAIL%" -password "%UNITY_PASSWORD%" -serial "%UNITY_SERIAL%" -quit -logFile license-activate.log
-          )
-          if exist license-activate.log (
-            type license-activate.log
-          ) else (
-            echo No license log generated
-          )
+          Write-Host "Activating Unity license..."
+          if ($env:UNITY_LICENSE) {
+            Write-Host "Using license file"
+            $env:UNITY_LICENSE | Out-File -FilePath unity.ulf -Encoding UTF8
+            & $env:UNITY_PATH -batchmode -manualLicenseFile unity.ulf -quit -logFile license-activate.log
+            if (Test-Path unity.ulf) { Remove-Item unity.ulf }
+          } elseif ($env:UNITY_EMAIL) {
+            Write-Host "Using credentials"
+            & $env:UNITY_PATH -batchmode -username $env:UNITY_EMAIL -password $env:UNITY_PASSWORD -serial $env:UNITY_SERIAL -quit -logFile license-activate.log
+          }
+          if (Test-Path license-activate.log) {
+            Get-Content license-activate.log
+          } else {
+            Write-Host "No license log generated"
+          }
 
       # 4. Unity 빌드 실행 (Self-hosted runner with local Unity installation)
       - name: Build Unity WebGL
-        shell: cmd
+        shell: powershell
         run: |
-          "%UNITY_PATH%" -quit -batchmode -nographics -projectPath "%CD%" -executeMethod BuildScript.BuildWebGL -logFile build.log
-          if %ERRORLEVEL% NEQ 0 (
-            type build.log
-            exit /b %ERRORLEVEL%
-          )
+          & $env:UNITY_PATH -quit -batchmode -nographics -projectPath (Get-Location).Path -executeMethod BuildScript.BuildWebGL -logFile build.log
+          if ($LASTEXITCODE -ne 0) {
+            Get-Content build.log
+            exit $LASTEXITCODE
+          }
 
       # 5. Unity 라이선스 반환 (선택적)
       - name: Return Unity License
         if: always()
-        shell: cmd
+        shell: powershell
         env:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
         run: |
-          echo Returning Unity license...
-          "%UNITY_PATH%" -quit -batchmode -returnlicense -logFile license-return.log
-          if exist license-return.log (
-            type license-return.log
-          ) else (
-            echo No return log generated
-          )
+          Write-Host "Returning Unity license..."
+          & $env:UNITY_PATH -quit -batchmode -returnlicense -logFile license-return.log
+          if (Test-Path license-return.log) {
+            Get-Content license-return.log
+          } else {
+            Write-Host "No return log generated"
+          }
 
       # 6. Gzip 압축 파일 해제 (GitHub Pages 호환성)
       - name: Decompress build files
