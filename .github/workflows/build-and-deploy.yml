@@ -92,7 +92,7 @@ jobs:
           
           # Start-Process를 사용하여 프로세스를 실행하고 종료 코드를 캡처
           $process = Start-Process -FilePath $unityPath `
-            -ArgumentList "-projectPath", $projectPath, "-buildTarget", "WebGL", "-executeMethod", "BuildScript.BuildWebGL", "-quit", "-batchmode", "-nographics", "-logFile", $logFile `
+            -ArgumentList "-projectPath", $projectPath, "-buildTarget", "WebGL", "-executeMethod", "BuildScript.BuildWebGL", "-quit", "-batchmode", "-nographics", "-noUpm", "-logFile", $logFile `
             -Wait -PassThru -NoNewWindow
           
           $exitCode = $process.ExitCode
