@@ -41,10 +41,19 @@ jobs:
       - name: Activate Unity License
         shell: powershell
         run: |
+          $LICENSE_CONTENT = '${{ secrets.UNITY_LICENSE }}'
+          
+          if ([string]::IsNullOrWhiteSpace($LICENSE_CONTENT)) {
+            Write-Error "UNITY_LICENSE secret is not set or is empty"
+            exit 1
+          }
+          
           $LICENSE_FILE = "$env:ProgramData\Unity\Unity_lic.ulf"
           $LICENSE_DIR = Split-Path $LICENSE_FILE
-          New-Item -ItemType Directory -Force -Path $LICENSE_DIR
-          Set-Content -Path $LICENSE_FILE -Value '${{ secrets.UNITY_LICENSE }}'
+          
+          New-Item -ItemType Directory -Force -Path $LICENSE_DIR | Out-Null
+          Set-Content -Path $LICENSE_FILE -Value $LICENSE_CONTENT
+          
           Write-Host "Unity license file created at: $LICENSE_FILE"
 
       # 4. Unity 빌드 실행 (직접 Unity CLI 사용)
