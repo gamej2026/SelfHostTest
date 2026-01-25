@@ -37,13 +37,24 @@ jobs:
             Library-WebGL-
             Library-
 
-      # 3. Unity 라이센스 확인 및 활성화 (Windows - PowerShell)
-      - name: Check and Activate Unity License (Windows)
+      # 3. Node.js 설치 (unity-activate 사용을 위해)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 4. unity-activate 설치
+      - name: Install unity-activate
+        run: npm install -g unity-activate
+
+      # 5. Unity 라이센스 활성화 (Windows - PowerShell)
+      - name: Activate Unity License (Windows)
         if: runner.os == 'Windows'
         shell: powershell -ExecutionPolicy Bypass -File {0}
         env:
           UNITY_PATH: ${{ vars.UNITY_PATH }}
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         run: |
           # Unity 설치 경로 찾기
           $unityPath = $env:UNITY_PATH
@@ -89,11 +100,12 @@ jobs:
           
           Write-Host "Unity 경로: $unityPath"
           
-          # Unity 라이센스 파일 확인
-          $unityLicenseContent = $env:UNITY_LICENSE
+          # Unity 이메일 및 패스워드 확인
+          $unityEmail = $env:UNITY_EMAIL
+          $unityPassword = $env:UNITY_PASSWORD
           
-          if ($unityLicenseContent) {
-            Write-Host "Unity 라이센스 파일을 설정합니다..."
+          if ($unityEmail -and $unityPassword) {
+            Write-Host "Unity 라이센스를 EMAIL/PASSWORD로 활성화합니다..."
             
             # Unity 라이센스 파일 경로 (Windows)
             $licensePath = "$env:ProgramData\Unity\Unity_lic.ulf"
@@ -104,12 +116,42 @@ jobs:
               New-Item -Path $licenseDir -ItemType Directory -Force | Out-Null
             }
             
-            # 라이센스 파일 저장 (줄바꿈 문자 유지, UTF8 인코딩)
-            # -NoNewline을 사용하지 않고 원본 그대로 저장하여 라이센스 파일 무결성 유지
-            $unityLicenseContent | Out-File -FilePath $licensePath -Encoding UTF8 -Force
-            Write-Host "Unity 라이센스 파일이 저장되었습니다: $licensePath"
+            # ALF 파일 생성 (Manual Activation File)
+            $alfFile = Join-Path $PWD.Path "Unity_v2020.alf"
+            Write-Host "ALF 파일 생성 중: $alfFile"
+            
+            $process = Start-Process -FilePath $unityPath `
+              -ArgumentList "-batchmode", "-nographics", "-quit", "-createManualActivationFile", "-logFile", "-" `
+              -Wait -PassThru -NoNewWindow
+            
+            if (-not (Test-Path $alfFile)) {
+              Write-Error "ALF 파일 생성 실패"
+              exit 1
+            }
+            
+            Write-Host "ALF 파일이 생성되었습니다: $alfFile"
+            
+            # unity-activate를 사용하여 라이센스 활성화
+            Write-Host "unity-activate를 사용하여 라이센스 활성화 중..."
+            
+            # unity-activate 실행
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+            
+            try {
+              & unity-activate --username $unityEmail --password $unityPassword --out $licenseDir $alfFile
+              
+              if ($LASTEXITCODE -ne 0) {
+                Write-Error "Unity 라이센스 활성화 실패 (Exit Code: $LASTEXITCODE)"
+                exit $LASTEXITCODE
+              }
+            } catch {
+              Write-Error "Unity 라이센스 활성화 실패: $_"
+              exit 1
+            }
+            
+            Write-Host "Unity 라이센스가 활성화되었습니다: $licensePath"
           } else {
-            Write-Host "UNITY_LICENSE 시크릿이 설정되지 않았습니다. 기존 라이센스를 사용합니다."
+            Write-Host "UNITY_EMAIL 또는 UNITY_PASSWORD 시크릿이 설정되지 않았습니다. 기존 라이센스를 사용합니다."
             Write-Host "참고: Self-hosted runner에서 Unity를 수동으로 활성화했거나, 유효한 라이센스 파일이 이미 존재해야 합니다."
           }
           
@@ -135,13 +177,14 @@ jobs:
             }
           }
 
-      # 3. Unity 라이센스 확인 및 활성화 (macOS - bash)
-      - name: Check and Activate Unity License (macOS)
+      # 6. Unity 라이센스 활성화 (macOS - bash)
+      - name: Activate Unity License (macOS)
         if: runner.os == 'macOS'
         shell: bash
         env:
           UNITY_PATH: ${{ vars.UNITY_PATH }}
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         run: |
           # Unity 설치 경로 찾기
           UNITY_PATH="${UNITY_PATH}"
@@ -180,9 +223,9 @@ jobs:
           
           echo "Unity 경로: $UNITY_PATH"
           
-          # Unity 라이센스 파일 확인
-          if [ -n "$UNITY_LICENSE" ]; then
-            echo "Unity 라이센스 파일을 설정합니다..."
+          # Unity 이메일 및 패스워드 확인
+          if [ -n "$UNITY_EMAIL" ] && [ -n "$UNITY_PASSWORD" ]; then
+            echo "Unity 라이센스를 EMAIL/PASSWORD로 활성화합니다..."
             
             # Unity 라이센스 파일 경로 (macOS)
             LICENSE_PATH="$HOME/Library/Application Support/Unity/Unity_lic.ulf"
@@ -193,11 +236,32 @@ jobs:
               mkdir -p "$LICENSE_DIR"
             fi
             
-            # 라이센스 파일 저장
-            echo "$UNITY_LICENSE" > "$LICENSE_PATH"
-            echo "Unity 라이센스 파일이 저장되었습니다: $LICENSE_PATH"
+            # ALF 파일 생성 (Manual Activation File)
+            ALF_FILE="$PWD/Unity_v2020.alf"
+            echo "ALF 파일 생성 중: $ALF_FILE"
+            
+            "$UNITY_PATH" -batchmode -nographics -quit -createManualActivationFile -logFile - || true
+            
+            if [ ! -f "$ALF_FILE" ]; then
+              echo "ALF 파일 생성 실패"
+              exit 1
+            fi
+            
+            echo "ALF 파일이 생성되었습니다: $ALF_FILE"
+            
+            # unity-activate를 사용하여 라이센스 활성화
+            echo "unity-activate를 사용하여 라이센스 활성화 중..."
+            
+            unity-activate --username "$UNITY_EMAIL" --password "$UNITY_PASSWORD" --out "$LICENSE_DIR" "$ALF_FILE"
+            
+            if [ $? -ne 0 ]; then
+              echo "Unity 라이센스 활성화 실패"
+              exit 1
+            fi
+            
+            echo "Unity 라이센스가 활성화되었습니다: $LICENSE_PATH"
           else
-            echo "UNITY_LICENSE 시크릿이 설정되지 않았습니다. 기존 라이센스를 사용합니다."
+            echo "UNITY_EMAIL 또는 UNITY_PASSWORD 시크릿이 설정되지 않았습니다. 기존 라이센스를 사용합니다."
             echo "참고: Self-hosted runner에서 Unity를 수동으로 활성화했거나, 유효한 라이센스 파일이 이미 존재해야 합니다."
           fi
           
@@ -224,7 +288,7 @@ jobs:
             fi
           fi
 
-      # 4. Unity 빌드 실행 (Windows - PowerShell)
+      # 7. Unity 빌드 실행 (Windows - PowerShell)
       - name: Build Unity WebGL (Windows)
         if: runner.os == 'Windows'
         shell: powershell -ExecutionPolicy Bypass -File {0}
@@ -301,7 +365,7 @@ jobs:
           
           Write-Host "Unity 빌드 성공!"
 
-      # 4. Unity 빌드 실행 (macOS - bash)
+      # 8. Unity 빌드 실행 (macOS - bash)
       - name: Build Unity WebGL (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -369,7 +433,7 @@ jobs:
           
           echo "Unity 빌드 성공!"
 
-      # 5. Gzip 압축 파일 해제 (Windows - PowerShell)
+      # 9. Gzip 압축 파일 해제 (Windows - PowerShell)
       - name: Decompress build files (Windows)
         if: runner.os == 'Windows'
         shell: powershell -ExecutionPolicy Bypass -File {0}
@@ -417,7 +481,7 @@ jobs:
             }
           }
 
-      # 5. Gzip 압축 파일 해제 (macOS - bash)
+      # 10. Gzip 압축 파일 해제 (macOS - bash)
       - name: Decompress build files (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -440,7 +504,7 @@ jobs:
             fi
           fi
 
-      # 6. 빌드 결과물을 아티팩트로 업로드
+      # 11. 빌드 결과물을 아티팩트로 업로드
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
