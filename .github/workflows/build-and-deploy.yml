@@ -54,9 +54,8 @@ jobs:
           if [ -d "$buildDir" ]; then
             for file in "$buildDir"/*.gz; do
               if [ -f "$file" ]; then
-                outFile="${file%.gz}"
                 echo "Decompressing: $(basename "$file")"
-                gunzip -c "$file" > "$outFile"
+                gunzip "$file"
                 echo "Decompressed: $(basename "$file")"
               fi
             done
