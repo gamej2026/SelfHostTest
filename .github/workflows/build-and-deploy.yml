@@ -125,7 +125,7 @@ jobs:
               -Wait -PassThru -NoNewWindow
             
             if (-not (Test-Path $alfFile)) {
-              Write-Error "ALF 파일 생성 실패"
+              Write-Error "ALF 파일 생성 실패 (Exit Code: $($process.ExitCode))"
               exit 1
             }
             
@@ -134,9 +134,7 @@ jobs:
             # unity-activate를 사용하여 라이센스 활성화
             Write-Host "unity-activate를 사용하여 라이센스 활성화 중..."
             
-            # unity-activate 실행
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-            
+            # unity-activate 실행 (PATH에서 직접 실행)
             try {
               & unity-activate --username $unityEmail --password $unityPassword --out $licenseDir $alfFile
               
@@ -240,16 +238,11 @@ jobs:
             ALF_FILE="$PWD/Unity.alf"
             echo "ALF 파일 생성 중: $ALF_FILE"
             
-            "$UNITY_PATH" -batchmode -nographics -quit -createManualActivationFile -logFile - 2>&1 || {
-              EXIT_CODE=$?
-              if [ ! -f "$ALF_FILE" ]; then
-                echo "ALF 파일 생성 실패 (Exit Code: $EXIT_CODE)"
-                exit 1
-              fi
-            }
+            "$UNITY_PATH" -batchmode -nographics -quit -createManualActivationFile -logFile - 2>&1
+            UNITY_EXIT_CODE=$?
             
             if [ ! -f "$ALF_FILE" ]; then
-              echo "ALF 파일 생성 실패"
+              echo "ALF 파일 생성 실패 (Exit Code: $UNITY_EXIT_CODE)"
               exit 1
             fi
             
