@@ -70,7 +70,11 @@ jobs:
         run: |
           & $env:UNITY_PATH -quit -batchmode -nographics -projectPath (Get-Location).Path -executeMethod BuildScript.BuildWebGL -logFile build.log
           if ($LASTEXITCODE -ne 0) {
-            Get-Content build.log
+            if (Test-Path build.log) {
+              Get-Content build.log
+            } else {
+              Write-Host "Build failed but log file was not created"
+            }
             exit $LASTEXITCODE
           }
 
