@@ -91,7 +91,7 @@ jobs:
 
       # 6. Gzip 압축 파일 해제 (GitHub Pages 호환성)
       - name: Decompress build files
-        shell: powershell -ExecutionPolicy RemoteSigned -File {0}
+        shell: powershell -ExecutionPolicy Bypass -File {0}
         run: |
           $buildDir = "build\webgl\Build"
           if (Test-Path $buildDir) {
