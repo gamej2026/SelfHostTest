@@ -37,14 +37,16 @@ jobs:
             Library-WebGL-
             Library-
 
-      # 3. Node.js 설치 (unity-activate 사용을 위해)
+      # 3. Node.js 설치 (unity-activate 사용을 위해 - Windows만 해당)
       - name: Setup Node.js
+        if: runner.os == 'Windows'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # 4. unity-activate 설치
+      # 4. unity-activate 설치 (Windows만 해당)
       - name: Install unity-activate
+        if: runner.os == 'Windows'
         run: npm install -g unity-activate
 
       # 5. Unity 라이센스 활성화 (Windows - PowerShell)
@@ -183,6 +185,7 @@ jobs:
           UNITY_PATH: ${{ vars.UNITY_PATH }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         run: |
           # Unity 설치 경로 찾기
           UNITY_PATH="${UNITY_PATH}"
@@ -225,40 +228,35 @@ jobs:
           if [ -n "$UNITY_EMAIL" ] && [ -n "$UNITY_PASSWORD" ]; then
             echo "Unity 라이센스를 EMAIL/PASSWORD로 활성화합니다..."
             
-            # Unity 라이센스 파일 경로 (macOS)
-            LICENSE_PATH="$HOME/Library/Application Support/Unity/Unity_lic.ulf"
-            LICENSE_DIR=$(dirname "$LICENSE_PATH")
+            # Unity Personal 라이센스의 경우, 직접 username/password로 활성화
+            # -serial 옵션은 Plus/Pro 라이센스에만 해당되며, Personal의 경우 username/password만 사용
+            LOG_FILE="$PWD/activation.log"
             
-            # 디렉토리가 없으면 생성
-            if [ ! -d "$LICENSE_DIR" ]; then
-              mkdir -p "$LICENSE_DIR"
+            # Unity 활성화 시도
+            "$UNITY_PATH" \
+              -batchmode \
+              -nographics \
+              -quit \
+              -username "$UNITY_EMAIL" \
+              -password "$UNITY_PASSWORD" \
+              -logFile "$LOG_FILE"
+            
+            ACTIVATION_EXIT_CODE=$?
+            
+            # 로그 출력
+            echo ""
+            echo "=== Unity Activation Log ==="
+            if [ -f "$LOG_FILE" ]; then
+              cat "$LOG_FILE"
             fi
+            echo ""
             
-            # ALF 파일 생성 (Manual Activation File)
-            ALF_FILE="$PWD/Unity.alf"
-            echo "ALF 파일 생성 중: $ALF_FILE"
-            
-            "$UNITY_PATH" -batchmode -nographics -quit -createManualActivationFile -logFile - 2>&1
-            UNITY_EXIT_CODE=$?
-            
-            if [ ! -f "$ALF_FILE" ]; then
-              echo "ALF 파일 생성 실패 (Exit Code: $UNITY_EXIT_CODE)"
-              exit 1
+            if [ $ACTIVATION_EXIT_CODE -eq 0 ]; then
+              echo "Unity 라이센스가 성공적으로 활성화되었습니다."
+            else
+              echo "Unity 라이센스 활성화 중 경고가 발생했습니다 (Exit Code: $ACTIVATION_EXIT_CODE)."
+              echo "라이센스 상태를 확인합니다..."
             fi
-            
-            echo "ALF 파일이 생성되었습니다: $ALF_FILE"
-            
-            # unity-activate를 사용하여 라이센스 활성화
-            echo "unity-activate를 사용하여 라이센스 활성화 중..."
-            
-            unity-activate --username "$UNITY_EMAIL" --password "$UNITY_PASSWORD" --out "$LICENSE_DIR" "$ALF_FILE"
-            
-            if [ $? -ne 0 ]; then
-              echo "Unity 라이센스 활성화 실패"
-              exit 1
-            fi
-            
-            echo "Unity 라이센스가 활성화되었습니다: $LICENSE_PATH"
           else
             echo "UNITY_EMAIL 또는 UNITY_PASSWORD 시크릿이 설정되지 않았습니다. 기존 라이센스를 사용합니다."
             echo "참고: Self-hosted runner에서 Unity를 수동으로 활성화했거나, 유효한 라이센스 파일이 이미 존재해야 합니다."
@@ -282,6 +280,7 @@ jobs:
               echo ""
               tail -n 30 "$TEST_LOG_FILE"
               echo "Unity 라이센스가 활성화되지 않았습니다."
+              exit 1
             else
               echo "Unity 라이센스가 정상적으로 확인되었습니다."
             fi
