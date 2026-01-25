@@ -102,8 +102,9 @@ jobs:
               New-Item -Path $licenseDir -ItemType Directory -Force | Out-Null
             }
             
-            # 라이센스 파일 저장
-            $unityLicenseContent | Set-Content -Path $licensePath -Encoding UTF8
+            # 라이센스 파일 저장 (줄바꿈 문자 유지, UTF8 인코딩)
+            # -NoNewline을 사용하지 않고 원본 그대로 저장하여 라이센스 파일 무결성 유지
+            $unityLicenseContent | Out-File -FilePath $licensePath -Encoding UTF8 -Force
             Write-Host "Unity 라이센스 파일이 저장되었습니다: $licensePath"
           } else {
             Write-Host "UNITY_LICENSE 시크릿이 설정되지 않았습니다. 기존 라이센스를 사용합니다."
@@ -122,8 +123,8 @@ jobs:
           if (Test-Path $testLogFile) {
             $logContent = Get-Content $testLogFile -Raw
             
-            # 라이센스 오류 확인
-            if ($logContent -match "No valid Unity Editor license found" -or $logContent -match "license.*not found") {
+            # 라이센스 오류 확인 (정확한 패턴 매칭)
+            if ($logContent -match "No valid Unity Editor license found" -or $logContent -match "Error.*com\.unity\.editor\.headless.*not found") {
               Write-Host "`n=== License Test Log ===`n"
               Get-Content $testLogFile | Select-Object -Last 30
               Write-Warning @"
