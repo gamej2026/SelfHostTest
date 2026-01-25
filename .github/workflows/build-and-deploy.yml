@@ -37,7 +37,17 @@ jobs:
             Library-WebGL-
             Library-
 
-      # 3. Unity 빌드 실행 (직접 Unity CLI 사용)
+      # 3. Unity 라이센스 활성화
+      - name: Activate Unity License
+        shell: powershell
+        run: |
+          $LICENSE_FILE = "$env:ProgramData\Unity\Unity_lic.ulf"
+          $LICENSE_DIR = Split-Path $LICENSE_FILE
+          New-Item -ItemType Directory -Force -Path $LICENSE_DIR
+          Set-Content -Path $LICENSE_FILE -Value '${{ secrets.UNITY_LICENSE }}'
+          Write-Host "Unity license file created at: $LICENSE_FILE"
+
+      # 4. Unity 빌드 실행 (직접 Unity CLI 사용)
       - name: Build Unity WebGL
         shell: powershell -ExecutionPolicy Bypass -File {0}
         env:
@@ -111,7 +121,7 @@ jobs:
           
           Write-Host "Unity 빌드 성공!"
 
-      # 4. Gzip 압축 파일 해제 (GitHub Pages 호환성)
+      # 5. Gzip 압축 파일 해제 (GitHub Pages 호환성)
       - name: Decompress build files
         shell: powershell -ExecutionPolicy Bypass -File {0}
         run: |
@@ -158,7 +168,7 @@ jobs:
             }
           }
 
-      # 5. 빌드 결과물을 아티팩트로 업로드
+      # 6. 빌드 결과물을 아티팩트로 업로드
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
