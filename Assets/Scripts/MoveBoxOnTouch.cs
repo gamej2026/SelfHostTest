@@ -40,6 +40,13 @@ public class MoveBoxOnTouch : MonoBehaviour
 
     void HandleInput(Vector3 screenPosition)
     {
+        // 카메라가 없으면 입력 무시
+        if (mainCamera == null)
+        {
+            Debug.LogWarning("Main camera not found. Cannot move box.");
+            return;
+        }
+        
         // 스크린 좌표를 월드 좌표로 변환
         Ray ray = mainCamera.ScreenPointToRay(screenPosition);
         
