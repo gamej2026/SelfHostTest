@@ -19,8 +19,6 @@ concurrency:
 jobs:
   build:
     runs-on: self-hosted
-    env:
-      UNITY_PATH: D:\UnityEditor\6000.3.4f1\Editor\Unity.exe
     steps:
       # 1. 저장소 코드 체크아웃
       - name: Checkout code
@@ -39,61 +37,17 @@ jobs:
             Library-WebGL-
             Library-
 
-      # 3. Unity 라이선스 활성화 (Self-hosted runner)
-      - name: Activate Unity License
-        shell: powershell -ExecutionPolicy Bypass -File {0}
+      # 3. Unity 빌드 실행 (game-ci/unity-builder)
+      - name: Build Unity WebGL
+        uses: game-ci/unity-builder@v4
         env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
-        run: |
-          Write-Host "Activating Unity license..."
-          if ($env:UNITY_LICENSE) {
-            Write-Host "Using license file"
-            $env:UNITY_LICENSE | Out-File -FilePath unity.ulf -Encoding UTF8
-            & $env:UNITY_PATH -batchmode -manualLicenseFile unity.ulf -quit -logFile license-activate.log
-            if (Test-Path unity.ulf) { Remove-Item unity.ulf }
-          } elseif ($env:UNITY_EMAIL) {
-            Write-Host "Using credentials"
-            & $env:UNITY_PATH -batchmode -username $env:UNITY_EMAIL -password $env:UNITY_PASSWORD -serial $env:UNITY_SERIAL -quit -logFile license-activate.log
-          }
-          if (Test-Path license-activate.log) {
-            Get-Content license-activate.log
-          } else {
-            Write-Host "No license log generated"
-          }
+        with:
+          targetPlatform: WebGL
+          buildMethod: BuildScript.BuildWebGL
 
-      # 4. Unity 빌드 실행 (Self-hosted runner with local Unity installation)
-      - name: Build Unity WebGL
-        shell: powershell -ExecutionPolicy Bypass -File {0}
-        run: |
-          & $env:UNITY_PATH -quit -batchmode -nographics -projectPath (Get-Location).Path -executeMethod BuildScript.BuildWebGL -logFile build.log
-          if ($LASTEXITCODE -ne 0) {
-            if (Test-Path build.log) {
-              Get-Content build.log
-            } else {
-              Write-Host "Build failed but log file was not created"
-            }
-            exit $LASTEXITCODE
-          }
-
-      # 5. Unity 라이선스 반환 (선택적)
-      - name: Return Unity License
-        if: always()
-        shell: powershell -ExecutionPolicy Bypass -File {0}
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-        run: |
-          Write-Host "Returning Unity license..."
-          & $env:UNITY_PATH -quit -batchmode -returnlicense -logFile license-return.log
-          if (Test-Path license-return.log) {
-            Get-Content license-return.log
-          } else {
-            Write-Host "No return log generated"
-          }
-
-      # 6. Gzip 압축 파일 해제 (GitHub Pages 호환성)
+      # 4. Gzip 압축 파일 해제 (GitHub Pages 호환성)
       - name: Decompress build files
         shell: powershell -ExecutionPolicy Bypass -File {0}
         run: |
@@ -130,7 +84,7 @@ jobs:
             }
           }
 
-      # 7. 빌드 결과물을 아티팩트로 업로드
+      # 5. 빌드 결과물을 아티팩트로 업로드
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
