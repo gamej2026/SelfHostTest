@@ -60,8 +60,9 @@ jobs:
             # 대체 경로 확인
             if (-not $unityPath -or -not (Test-Path $unityPath)) {
               $altPaths = @(
-                "C:\Program Files\Unity\Editor\Unity.exe",
-                "D:\Program Files\Unity\Hub\Editor\*\Editor\Unity.exe"
+                "D:\UnityEditor\6000.3.4f1\Editor\Unity.exe",
+                "D:\Program Files\Unity\Hub\Editor\*\Editor\Unity.exe",
+                "C:\Program Files\Unity\Editor\Unity.exe"
               )
               foreach ($path in $altPaths) {
                 if ($path -like "*\*\*") {
