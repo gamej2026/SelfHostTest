@@ -25,7 +25,7 @@ Unity WebGL 프로젝트를 GitHub Pages로 배포하는 테스트 프로젝트�
 
 - `main` 또는 `copilot/deploy-github-pages` 브랜치에 push하면 자동으로 빌드 및 배포됩니다
 - **빌드 과정**:
-  1. Self-hosted runner에서 로컬 Unity 설치본(`D:\UnityEditor\6000.3.4f1\Editor\Unity.exe`)을 사용하여 WebGL 빌드 실행
+  1. Self-hosted runner에서 로컬 Unity 설치본(`D:\UnityEditor\6000.3.5f1\Editor\Unity.exe` for Windows 또는 `/Applications/Unity/Hub/Editor/6000.3.5f1/Unity.app` for macOS)을 사용하여 WebGL 빌드 실행
   2. 빌드된 파일의 Gzip 압축 해제 (GitHub Pages 호환성)
   3. 빌드 결과물을 아티팩트로 저장
 - **배포 과정**:
@@ -38,8 +38,10 @@ Unity WebGL 프로젝트를 GitHub Pages로 배포하는 테스트 프로젝트�
 이 프로젝트는 self-hosted runner를 사용하여 빌드를 수행합니다.
 
 **요구 사항:**
-1. Windows 기반 self-hosted runner가 GitHub 저장소에 등록되어 있어야 합니다
-2. Unity 6000.3.4f1이 `D:\UnityEditor\6000.3.4f1\Editor\Unity.exe` 경로에 설치되어 있어야 합니다
+1. Windows 또는 macOS 기반 self-hosted runner가 GitHub 저장소에 등록되어 있어야 합니다
+2. Unity 6000.3.5f1 (또는 6000.3.4f1)이 다음 경로에 설치되어 있어야 합니다:
+   - Windows: `D:\UnityEditor\6000.3.5f1\Editor\Unity.exe` 또는 `C:\Program Files\Unity\Hub\Editor\6000.3.5f1\Editor\Unity.exe`
+   - macOS: `/Applications/Unity/Hub/Editor/6000.3.5f1/Unity.app`
 3. Unity 라이선스가 활성화되어 있어야 합니다 (아래 참조)
 
 **Self-Hosted Runner 등록 방법:**
@@ -47,7 +49,7 @@ Unity WebGL 프로젝트를 GitHub Pages로 배포하는 테스트 프로젝트�
 2. **Settings** (설정) 탭 클릭
 3. 왼쪽 메뉴에서 **Actions** → **Runners** 클릭
 4. **New self-hosted runner** 버튼 클릭
-5. Windows를 선택하고 제공되는 명령어를 실행하여 runner 설치 및 등록
+5. 운영체제(Windows 또는 macOS)를 선택하고 제공되는 명령어를 실행하여 runner 설치 및 등록
 
 **Unity 라이선스 설정:**
 
@@ -60,7 +62,9 @@ Self-hosted runner에서 Unity를 배치 모드로 실행하려면 라이선스�
 
 **옵션 2: Unity 라이선스 파일 사용 (GitHub Secrets)**
 1. Unity 라이선스 파일(`.ulf`)을 준비합니다:
-   - **방법 A**: 이미 활성화된 경우 `C:\ProgramData\Unity\Unity_lic.ulf` 파일을 복사
+   - **방법 A**: 이미 활성화된 경우 다음 경로에서 파일을 복사
+     - Windows: `C:\ProgramData\Unity\Unity_lic.ulf`
+     - macOS: `~/Library/Application Support/Unity/Unity_lic.ulf`
    - **방법 B**: Unity Hub에서 Manual Activation을 통해 라이선스 파일 생성
      1. Unity Hub 실행 → Preferences → Licenses
      2. Add license → Get a free personal license (또는 기존 라이선스 사용)
@@ -75,7 +79,7 @@ Self-hosted runner에서 Unity를 배치 모드로 실행하려면 라이선스�
 
 ## 🎮 프로젝트 정보
 
-- **Unity Version**: 6000.3.4f1
+- **Unity Version**: 6000.3.5f1 (also supports 6000.3.4f1)
 - **Build Target**: WebGL
 - **Description**: 셀프 호스팅으로 Action 테스트 되는지 확인
 
@@ -102,7 +106,7 @@ Self-hosted runner에서 Unity를 배치 모드로 실행하려면 라이선스�
 
 Unity Editor에서 빌드하려면:
 
-1. Unity 6000.3.4f1 설치
+1. Unity 6000.3.5f1 (또는 6000.3.4f1) 설치
 2. 프로젝트 열기
 3. File → Build Settings → WebGL 선택
 4. Build 클릭 또는 BuildScript를 사용하여 빌드
