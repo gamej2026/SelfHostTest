@@ -185,7 +185,6 @@ jobs:
           UNITY_PATH: ${{ vars.UNITY_PATH }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         run: |
           # Unity 설치 경로 찾기
           UNITY_PATH="${UNITY_PATH}"
