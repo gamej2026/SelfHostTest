@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       # 1. 저장소 코드 체크아웃
       - name: Checkout code
@@ -37,36 +37,89 @@ jobs:
             Library-WebGL-
             Library-
 
-      # 3. Unity 빌드 실행 (game-ci/unity-builder)
+      # 3. Unity 빌드 실행 (직접 Unity CLI 사용)
       - name: Build Unity WebGL
-        uses: game-ci/unity-builder@v4
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-        with:
-          targetPlatform: WebGL
-          buildMethod: BuildScript.BuildWebGL
+        shell: powershell
+        run: |
+          # Unity 설치 경로 찾기
+          $unityPath = Get-ChildItem -Path "C:\Program Files\Unity\Hub\Editor" -Directory | 
+                       Where-Object { $_.Name -match "^\d+\.\d+\.\d+f\d+" } | 
+                       Sort-Object Name -Descending | 
+                       Select-Object -First 1 | 
+                       ForEach-Object { Join-Path $_.FullName "Editor\Unity.exe" }
+          
+          if (-not (Test-Path $unityPath)) {
+            Write-Error "Unity가 설치되어 있지 않습니다."
+            exit 1
+          }
+          
+          Write-Host "Unity 경로: $unityPath"
+          
+          # Unity 빌드 실행
+          $projectPath = $PWD.Path
+          $logFile = Join-Path $projectPath "build.log"
+          
+          & $unityPath `
+            -projectPath $projectPath `
+            -buildTarget WebGL `
+            -executeMethod BuildScript.BuildWebGL `
+            -quit `
+            -batchmode `
+            -nographics `
+            -logFile $logFile
+          
+          $exitCode = $LASTEXITCODE
+          
+          # 로그 출력
+          if (Test-Path $logFile) {
+            Write-Host "`n=== Unity Build Log ===`n"
+            Get-Content $logFile | Select-Object -Last 100
+          }
+          
+          # 빌드 결과 확인
+          if ($exitCode -ne 0) {
+            Write-Error "Unity 빌드 실패 (Exit Code: $exitCode)"
+            exit $exitCode
+          }
+          
+          Write-Host "Unity 빌드 성공!"
 
       # 4. Gzip 압축 파일 해제 (GitHub Pages 호환성)
       - name: Decompress build files
+        shell: powershell -ExecutionPolicy Bypass -File {0}
         run: |
-          buildDir="build/webgl/Build"
-          if [ -d "$buildDir" ]; then
-            for file in "$buildDir"/*.gz; do
-              if [ -f "$file" ]; then
-                echo "Decompressing: $(basename "$file")"
-                gunzip "$file"
-                echo "Decompressed: $(basename "$file")"
-              fi
-            done
+          $buildDir = "build\webgl\Build"
+          if (Test-Path $buildDir) {
+            Get-ChildItem -Path $buildDir -Filter *.gz | ForEach-Object {
+              $outFile = $_.FullName -replace '\.gz$', ''
+              Write-Host "Decompressing: $($_.Name)"
+              
+              # PowerShell을 사용한 Gzip 압축 해제
+              $input = New-Object System.IO.FileStream $_.FullName, ([IO.FileMode]::Open), ([IO.FileAccess]::Read), ([IO.FileShare]::Read)
+              $output = New-Object System.IO.FileStream $outFile, ([IO.FileMode]::Create), ([IO.FileAccess]::Write), ([IO.FileShare]::None)
+              $gzipStream = New-Object System.IO.Compression.GzipStream $input, ([IO.Compression.CompressionMode]::Decompress)
+              
+              $buffer = New-Object byte[](1024)
+              while ($true) {
+                $read = $gzipStream.Read($buffer, 0, 1024)
+                if ($read -le 0) { break }
+                $output.Write($buffer, 0, $read)
+              }
+              
+              $gzipStream.Close()
+              $output.Close()
+              $input.Close()
+              
+              Write-Host "Decompressed: $($_.Name)"
+            }
             
             # index.html에서 .gz 확장자 제거
-            indexFile="build/webgl/index.html"
-            if [ -f "$indexFile" ]; then
-              sed -i 's/\.gz"/"/g' "$indexFile"
-              echo "Updated index.html to reference decompressed files"
-            fi
-          fi
+            $indexFile = "build\webgl\index.html"
+            if (Test-Path $indexFile) {
+              (Get-Content $indexFile) -replace '\.gz"', '"' | Set-Content $indexFile
+              Write-Host "Updated index.html to reference decompressed files"
+            }
+          }
 
       # 5. 빌드 결과물을 아티팩트로 업로드
       - name: Upload build artifact
