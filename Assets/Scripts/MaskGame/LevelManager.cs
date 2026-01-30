@@ -1,52 +1,89 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace MaskGame
 {
     public class LevelManager : MonoBehaviour
     {
-        // Simple text-based level layout
-        // P: Player Start
-        // #: Wall
-        // .: Ground
-        // B: Breakable
-        // G: Goal
-        private string[] levelMap = new string[]
+        public static LevelManager Instance;
+
+        public PlayerController currentPlayer;
+        private int currentLevelIndex = 0;
+        private GameObject currentLevelRoot;
+
+        // Level Data
+        // P: Player, G: Goal, #: Wall, B: Breakable, E: Enemy (Horizontal), Z: Enemy (Vertical)
+        private List<string[]> levels = new List<string[]>();
+
+        void Awake()
         {
-            "####################",
-            "#P.................#",
-            "#####.###.##########",
-            "#.......#..........#",
-            "#.BBBB..#..BBBB....#",
-            "#.B..B..#..B.......#",
-            "#.BBBB..#..BBBB....#",
-            "#.......#..........#",
-            "#########.##########",
-            "#..................#",
-            "#..BBBBB#####..G...#",
-            "#..................#",
-            "####################"
-        };
+            Instance = this;
+            InitializeLevels();
+        }
 
-        public void GenerateLevel(PlayerController playerRef)
+        void InitializeLevels()
         {
-            float tileSize = 1.0f;
+            // Level 1: Tutorial
+            levels.Add(new string[] {
+                "####################",
+                "#P.................#",
+                "#####.###.##########",
+                "#.......#..........#",
+                "#.BBBB..#..BBBB....#",
+                "#.B..B..#..B.......#",
+                "#.BBBB..#..BBBB....#",
+                "#.......#..........#",
+                "#########.##########",
+                "#..................#",
+                "#..BBBBB#####..G...#",
+                "#..................#",
+                "####################"
+            });
 
-            // Create a parent object for the level
-            GameObject levelRoot = new GameObject("LevelRoot");
+            // Level 2: Enemies & Challenge
+            levels.Add(new string[] {
+                "####################",
+                "#P.................#",
+                "#.###.###.###.###..#",
+                "#...E...#...E...#..#",
+                "#######.#######.#..#",
+                "#.......#..........#",
+                "#.B.B.B.#.BBBBBB...#",
+                "#.B.B.B.#..........#",
+                "#.......#...Z......#",
+                "#########.#######.##",
+                "#.........#........#",
+                "#..BBBB...#...G....#",
+                "####################"
+            });
+        }
 
-            // Create Ground Plane
+        public void GenerateCurrentLevel()
+        {
+            if (currentLevelRoot != null) Destroy(currentLevelRoot);
+
+            currentLevelRoot = new GameObject($"Level_{currentLevelIndex}");
+
+            // Textures
+            Texture2D wallTex = TextureGen.CreateBrickTexture(Color.gray, Color.black);
+            Texture2D floorTex = TextureGen.CreateCheckerTexture(new Color(0.8f, 0.8f, 0.8f), new Color(0.5f, 0.5f, 0.5f));
+            Texture2D breakableTex = TextureGen.CreateBrickTexture(new Color(0.6f, 0.3f, 0.0f), Color.black);
+
+            // Ground
             GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
             floor.name = "Floor";
-            floor.transform.parent = levelRoot.transform;
-            floor.transform.localScale = new Vector3(3, 1, 3); // 30x30 roughly
+            floor.transform.parent = currentLevelRoot.transform;
+            floor.transform.localScale = new Vector3(3, 1, 3);
             floor.transform.position = new Vector3(10, -0.5f, 6);
-            floor.GetComponent<Renderer>().material.color = Color.gray;
+            floor.GetComponent<Renderer>().material.mainTexture = floorTex;
 
-            for (int z = 0; z < levelMap.Length; z++)
+            string[] map = levels[currentLevelIndex % levels.Count];
+            float tileSize = 1.0f;
+
+            for (int z = 0; z < map.Length; z++)
             {
-                string row = levelMap[z];
-                // Invert Z so the map reads top-down in world space
-                int zPos = levelMap.Length - 1 - z;
+                string row = map[z];
+                int zPos = map.Length - 1 - z;
 
                 for (int x = 0; x < row.Length; x++)
                 {
@@ -56,31 +93,46 @@ namespace MaskGame
                     switch (tile)
                     {
                         case '#':
-                            CreateCube(pos, Color.black, BlockType.Wall, levelRoot.transform);
+                            CreateCube(pos, wallTex, BlockType.Wall, currentLevelRoot.transform);
                             break;
                         case 'B':
-                            CreateCube(pos, new Color(0.6f, 0.3f, 0.0f), BlockType.Breakable, levelRoot.transform); // Brown
+                            CreateCube(pos, breakableTex, BlockType.Breakable, currentLevelRoot.transform);
                             break;
                         case 'G':
-                            CreateCube(pos, Color.yellow, BlockType.Goal, levelRoot.transform);
+                            CreateCube(pos, null, BlockType.Goal, currentLevelRoot.transform, Color.yellow);
                             break;
                         case 'P':
-                            // Set player position
-                            playerRef.transform.position = pos + Vector3.up * 1.0f;
+                            if(currentPlayer)
+                            {
+                                currentPlayer.transform.position = pos + Vector3.up * 1.0f;
+                                // Reset velocity
+                                Rigidbody rb = currentPlayer.GetComponent<Rigidbody>();
+                                if(rb) {
+                                    rb.velocity = Vector3.zero;
+                                    rb.angularVelocity = Vector3.zero;
+                                }
+                            }
+                            break;
+                        case 'E': // Horizontal Enemy
+                            CreateEnemy(pos, true, currentLevelRoot.transform);
+                            break;
+                        case 'Z': // Vertical Enemy
+                            CreateEnemy(pos, false, currentLevelRoot.transform);
                             break;
                     }
                 }
             }
         }
 
-        private void CreateCube(Vector3 position, Color color, BlockType type, Transform parent)
+        private void CreateCube(Vector3 position, Texture2D tex, BlockType type, Transform parent, Color? color = null)
         {
             GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
             cube.transform.position = position;
             cube.transform.parent = parent;
 
             Renderer r = cube.GetComponent<Renderer>();
-            r.material.color = color;
+            if (tex != null) r.material.mainTexture = tex;
+            if (color.HasValue) r.material.color = color.Value;
 
             InteractableBlock block = cube.AddComponent<InteractableBlock>();
             block.Type = type;
@@ -88,9 +140,47 @@ namespace MaskGame
             if (type == BlockType.Goal)
             {
                 cube.transform.localScale = Vector3.one * 0.8f;
-                // Make goal trigger?
                 cube.GetComponent<Collider>().isTrigger = true;
             }
+        }
+
+        private void CreateEnemy(Vector3 position, bool horizontal, Transform parent)
+        {
+             GameObject enemy = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+             enemy.name = "Enemy";
+             enemy.transform.position = position;
+             enemy.transform.parent = parent;
+
+             EnemyController ec = enemy.AddComponent<EnemyController>();
+             ec.moveHorizontal = horizontal;
+        }
+
+        public void CompleteLevel()
+        {
+            Debug.Log($"Completed Level {currentLevelIndex}");
+            currentLevelIndex++;
+            if (currentLevelIndex >= levels.Count)
+            {
+                // Game Over / Win Screen
+                // For now, loop back or show win logic
+                Debug.Log("ALL LEVELS COMPLETED");
+                if(currentPlayer) currentPlayer.isWon = true; // Use existing win flag for UI
+            }
+            else
+            {
+                GenerateCurrentLevel();
+            }
+        }
+
+        public void RestartLevel()
+        {
+             Debug.Log("Restarting Level...");
+             GenerateCurrentLevel();
+        }
+
+        public int GetCurrentLevelIndex()
+        {
+            return currentLevelIndex + 1;
         }
     }
 }

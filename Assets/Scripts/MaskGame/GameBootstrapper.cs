@@ -37,7 +37,8 @@ namespace MaskGame
             // 3. Create Level Manager
             GameObject levelMgrObj = new GameObject("LevelManager");
             LevelManager levelManager = levelMgrObj.AddComponent<LevelManager>();
-            levelManager.GenerateLevel(player);
+            levelManager.currentPlayer = player;
+            levelManager.GenerateCurrentLevel(); // Uses the new multi-level system
 
             // 4. Setup Camera Follow
             CameraFollow camFollow = mainCam.gameObject.AddComponent<CameraFollow>();

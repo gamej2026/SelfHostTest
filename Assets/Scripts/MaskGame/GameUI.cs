@@ -18,7 +18,8 @@ namespace MaskGame
         {
             if (player == null) return;
 
-            string msg = $"Mask: {player.currentMask}\nControls: 1=Normal, 2=Heavy, 3=Feather\nArrows/WASD to Move, Space to Jump";
+            string levelInfo = LevelManager.Instance != null ? $"Level: {LevelManager.Instance.GetCurrentLevelIndex()}" : "";
+            string msg = $"Mask: {player.currentMask}\n{levelInfo}\nControls: 1=Normal, 2=Heavy, 3=Feather\nArrows/WASD to Move, Space to Jump";
 
             if (style == null) style = new GUIStyle(); // Safety
             style.fontSize = 24;
@@ -36,7 +37,7 @@ namespace MaskGame
                 style.fontSize = 48;
                 style.alignment = TextAnchor.MiddleCenter;
                 style.normal.textColor = Color.green; // Make it green
-                GUI.Label(new Rect(Screen.width/2 - 200, Screen.height/2 - 100, 400, 200), "GOAL REACHED!", style);
+                GUI.Label(new Rect(Screen.width/2 - 200, Screen.height/2 - 100, 400, 200), "YOU WIN!", style);
             }
         }
     }

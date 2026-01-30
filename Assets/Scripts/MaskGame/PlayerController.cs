@@ -107,11 +107,29 @@ namespace MaskGame
                 if (block.Type == BlockType.Goal)
                 {
                     Debug.Log("Goal Reached!");
-                    isWon = true;
-                    rb.velocity = Vector3.zero;
-                    rb.isKinematic = true; // Stop physics
+                    LevelManager.Instance.CompleteLevel();
                 }
             }
+        }
+
+        void OnTriggerEnter(Collider other)
+        {
+             InteractableBlock block = other.gameObject.GetComponent<InteractableBlock>();
+            if (block != null)
+            {
+                if (block.Type == BlockType.Goal)
+                {
+                    Debug.Log("Goal Reached (Trigger)!");
+                    LevelManager.Instance.CompleteLevel();
+                }
+            }
+        }
+
+        public void Die()
+        {
+            Debug.Log("Player Died!");
+            // Restart Level
+            LevelManager.Instance.RestartLevel();
         }
     }
 }
