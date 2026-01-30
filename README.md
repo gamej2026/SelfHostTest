@@ -1,7 +1,7 @@
 # SelfHostTest
  빌드 테스트
 Unity WebGL 프로젝트를 GitHub Pages로 배포하는 테스트 프로젝트입니다.
- 
+ 빌드 
 ## 🌐 GitHub Pages 배포
 
 이 프로젝트는 GitHub Actions를 사용하여 자동으로 GitHub Pages에 배포됩니다.
