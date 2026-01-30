@@ -6,6 +6,7 @@ namespace MaskGame
     public class LevelManager : MonoBehaviour
     {
         public static LevelManager Instance;
+        public GameState currentState = GameState.Title;
 
         public PlayerController currentPlayer;
         private int currentLevelIndex = 0;
@@ -19,6 +20,31 @@ namespace MaskGame
         {
             Instance = this;
             InitializeLevels();
+        }
+
+        void Update()
+        {
+            if (currentState == GameState.Title)
+            {
+                if (Input.GetKeyDown(KeyCode.Space))
+                {
+                    StartGame();
+                }
+            }
+            else if (currentState == GameState.GameOver || currentState == GameState.Victory)
+            {
+                if (Input.GetKeyDown(KeyCode.R))
+                {
+                    StartGame();
+                }
+            }
+        }
+
+        public void StartGame()
+        {
+            currentLevelIndex = 0;
+            currentState = GameState.Playing;
+            GenerateCurrentLevel();
         }
 
         void InitializeLevels()
@@ -161,15 +187,20 @@ namespace MaskGame
             currentLevelIndex++;
             if (currentLevelIndex >= levels.Count)
             {
-                // Game Over / Win Screen
-                // For now, loop back or show win logic
                 Debug.Log("ALL LEVELS COMPLETED");
-                if(currentPlayer) currentPlayer.isWon = true; // Use existing win flag for UI
+                currentState = GameState.Victory;
+                if (currentLevelRoot != null) Destroy(currentLevelRoot);
             }
             else
             {
                 GenerateCurrentLevel();
             }
+        }
+
+        public void GameOver()
+        {
+            currentState = GameState.GameOver;
+            if (currentLevelRoot != null) Destroy(currentLevelRoot);
         }
 
         public void RestartLevel()

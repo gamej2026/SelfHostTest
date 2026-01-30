@@ -49,6 +49,10 @@ namespace MaskGame
             GameUI gui = uiObj.AddComponent<GameUI>();
             gui.player = player;
 
+            // 6. Setup Particles
+            GameObject particleObj = new GameObject("ParticleManager");
+            particleObj.AddComponent<ParticleManager>();
+
             Debug.Log("Mask Game Initialized.");
         }
     }

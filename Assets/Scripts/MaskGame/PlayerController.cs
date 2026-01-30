@@ -90,6 +90,11 @@ namespace MaskGame
             if (rb == null) return;
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
             isGrounded = false;
+
+            if (ParticleManager.Instance != null)
+            {
+                ParticleManager.Instance.SpawnJumpEffect(transform.position - Vector3.up * 0.5f);
+            }
         }
 
         void OnCollisionEnter(Collision collision)
@@ -128,8 +133,7 @@ namespace MaskGame
         public void Die()
         {
             Debug.Log("Player Died!");
-            // Restart Level
-            LevelManager.Instance.RestartLevel();
+            LevelManager.Instance.GameOver();
         }
     }
 }
