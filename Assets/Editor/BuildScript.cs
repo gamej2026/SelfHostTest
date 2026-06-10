@@ -74,6 +74,7 @@ public class BuildScript
         string content = $"Build Time: {buildTime}";
         
         File.WriteAllText(buildInfoPath, content);
+        AssetDatabase.Refresh();
         
         UnityEngine.Debug.Log($"Build info updated: {content}");
     }
