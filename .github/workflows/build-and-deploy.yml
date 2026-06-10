@@ -260,6 +260,11 @@ jobs:
             [ -f "$log_file" ] && grep -Eiq "No valid Unity Editor license found|Unity Editor requires a valid license|No license file was found|LICENSE SYSTEM.*(Error|failed)|Failed to activate|Your serial number is invalid|Entitlement.*not found" "$log_file"
           }
 
+          has_license_success() {
+            local log_file="$1"
+            [ -f "$log_file" ] && grep -Eiq "Product: Unity Personal|License group:|Successfully updated license|Licensing is initialized|Successfully resolved entitlement details" "$log_file"
+          }
+
           if [ -n "$UNITY_EMAIL" ] && [ -n "$UNITY_PASSWORD" ]; then
             echo "Unity 라이센스를 EMAIL/PASSWORD로 활성화합니다..."
             LOG_FILE="$PWD/activation.log"
@@ -286,7 +291,7 @@ jobs:
             fi
             echo ""
             
-            if [ $ACTIVATION_EXIT_CODE -eq 0 ]; then
+            if [ $ACTIVATION_EXIT_CODE -eq 0 ] || has_license_success "$LOG_FILE"; then
               echo "Unity 라이센스가 성공적으로 활성화되었습니다."
             else
               echo "Unity 라이센스 활성화 명령이 실패했습니다 (Exit Code: $ACTIVATION_EXIT_CODE)."
@@ -309,7 +314,12 @@ jobs:
           
           # 로그 확인
           if [ -f "$TEST_LOG_FILE" ]; then
-            if [ $TEST_EXIT_CODE -ne 0 ] || has_license_error "$TEST_LOG_FILE"; then
+            if has_license_success "$TEST_LOG_FILE"; then
+              echo "Unity 라이센스가 정상적으로 확인되었습니다."
+              if [ $TEST_EXIT_CODE -ne 0 ]; then
+                echo "Unity가 라이센스 확인 후 Exit Code $TEST_EXIT_CODE 로 종료했지만, 라이센스는 정상입니다. 이후 빌드 단계에서 실제 프로젝트 오류를 확인합니다."
+              fi
+            elif has_license_error "$TEST_LOG_FILE"; then
               echo ""
               echo "=== License Test Log ==="
               echo ""
@@ -317,6 +327,13 @@ jobs:
               echo "Unity 라이센스가 활성화되지 않았습니다."
               echo "UNITY_EMAIL/UNITY_PASSWORD 시크릿 값, Unity 계정 비밀번호 로그인 가능 여부, 2FA 설정을 확인해주세요."
               exit 1
+            elif [ $TEST_EXIT_CODE -ne 0 ]; then
+              echo ""
+              echo "=== License Test Log ==="
+              echo ""
+              tail -n 120 "$TEST_LOG_FILE"
+              echo "Unity 라이센스 성공 여부를 확인할 수 없고 Unity가 Exit Code $TEST_EXIT_CODE 로 종료했습니다."
+              exit $TEST_EXIT_CODE
             else
               echo "Unity 라이센스가 정상적으로 확인되었습니다."
             fi
