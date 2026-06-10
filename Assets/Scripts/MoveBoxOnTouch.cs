@@ -57,6 +57,9 @@ public class MoveBoxOnTouch : MonoBehaviour
         // Y축은 현재 큐브의 높이 유지
         targetPosition = new Vector3(worldPosition.x, transform.position.y, transform.position.z);
         isMoving = true;
+
+        // 배경 색상을 랜덤하게 변경
+        mainCamera.backgroundColor = new Color(Random.value, Random.value, Random.value);
     }
 
     void MoveToTarget()
